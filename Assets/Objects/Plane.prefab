@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5805154935735205123}
   - component: {fileID: 3346924513111572838}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Neural Network
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -103,7 +103,7 @@ MonoBehaviour:
   - 0
   - 0
   - 0
-  sensorTargetType: 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  sensorTargetType: []
 --- !u!1 &5196405094478694341
 GameObject:
   m_ObjectHideFlags: 0
@@ -115,7 +115,7 @@ GameObject:
   - component: {fileID: 3432683801306507036}
   - component: {fileID: 5265964705832747255}
   - component: {fileID: 6866938944234597412}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Boom
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -224,7 +224,7 @@ GameObject:
   - component: {fileID: 1446881148739081691}
   - component: {fileID: 312253645}
   - component: {fileID: -6963248569850324164}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Plane
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -430,7 +430,7 @@ BoxCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}

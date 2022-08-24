@@ -241,9 +241,6 @@ public class Plane : MonoBehaviour
         //Stop the game
         GameObject.Find("GameController").GetComponent<GameController>().gameOver = true;
         gameOver = true;
-
-        //Destroy the plane
-        Destroy(gameObject, 0.7f);
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -256,5 +253,18 @@ public class Plane : MonoBehaviour
                 Death();
             }
         }
+    }
+
+    public void Activate()
+    {
+        transform.position = new(-10, 0, 0);
+        gameObject.GetComponent<Renderer>().enabled = true;
+        GameObject boom = transform.GetChild(0).gameObject;
+        boom.GetComponent<Renderer>().enabled = false;
+        boom.GetComponent<Animator>().enabled = false;
+        gameOver = false;
+        speed = 0;
+        degrees = 0;
+        recharged = true;
     }
 }

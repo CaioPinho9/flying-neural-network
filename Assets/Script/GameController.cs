@@ -33,7 +33,7 @@ public class GameController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        timer = transform.GetChild(1).gameObject;
+        timer = transform.GetChild(0).gameObject;
     }
 
     // Update is called once per frame
@@ -61,18 +61,6 @@ public class GameController : MonoBehaviour
             Spawn();
         }
 
-        //Game over screen
-        if (gameOver)
-        {
-            transform.GetChild(0).GetComponent<Animator>().enabled = true;
-        }
-
-        //Press any key to restart
-        if (Input.anyKey && gameOver)
-        {
-            SceneManager.LoadScene("Sample 1");
-        }
-
         //Each second increases the score in 3 points
         if (!gameOver)
         {
@@ -80,7 +68,29 @@ public class GameController : MonoBehaviour
             lastSecond = seconds;
 
             //Display
-            transform.GetChild(2).GetComponent<TextMeshPro>().text = score.ToString("00000");
+            transform.GetChild(1).GetComponent<TextMeshPro>().text = score.ToString("00000");
+        } 
+        else
+        {
+            GameObject[] enemy = GameObject.FindGameObjectsWithTag("Enemy");
+            GameObject[] ammo = GameObject.FindGameObjectsWithTag("Ammo");
+            GameObject[] obstacle = GameObject.FindGameObjectsWithTag("Obstacle");
+            GameObject[] missile = GameObject.FindGameObjectsWithTag("Missile");
+
+            foreach (GameObject destroy in enemy) { Destroy(destroy); }
+            foreach (GameObject destroy in ammo) { Destroy(destroy); }
+            foreach (GameObject destroy in obstacle) { Destroy(destroy); }
+            foreach (GameObject destroy in missile) { Destroy(destroy); }
+
+            score = 0;
+            gameOver = false;
+            timer.GetComponent<Timer>().seconds = 0;
+            timer.GetComponent<Timer>().StartTime = Time.time;
+            seconds = Time.time;
+            lastSecond = Time.time;
+
+            GameObject[] player = GameObject.FindGameObjectsWithTag("Player");
+            foreach (GameObject plane in player) { plane.GetComponent<Plane>().Activate(); }
         }
     }
 

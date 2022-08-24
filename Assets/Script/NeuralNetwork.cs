@@ -11,7 +11,7 @@ public class NeuralNetwork : MonoBehaviour
     public float right;
     public float up;
     public float down;
-    public bool shot;
+    public float shot;
     
     //Input
     [Header("Input")]
@@ -19,105 +19,132 @@ public class NeuralNetwork : MonoBehaviour
     public float y;
     public float speed;
     public float degrees;
-    public bool recharged;
+    public float recharged;
 
     //Sensor
     public float[] sensorX = new float[21];
     public float[] sensorY = new float[21];
-    public int[] sensorTargetType = new int[21];
+    public float[] sensorTargetType = new float[21];
 
     private GameObject plane;
+    private ArrayList input;
+    public Network network;
 
     // Start is called before the first frame update
     void Start()
     {
         plane = transform.parent.gameObject;
+        //Data from plane
+        InputData();
+        //Data to neural network
+        network = new(input);
+        //Create all neurons
+        network.CreateNeurons();
+        //Connect layers
+        network.LinkLayers();
     }
 
     // Update is called once per frame
     void Update()
     {
-        Input();
-        Forward();
+        InputData();
     }
 
-    private void Input()
+    private void InputData()
     {
+        //Receive data from plane
         x = plane.transform.position.x;
         y = plane.transform.position.y;
         speed = plane.GetComponent<Plane>().speed;
         degrees = plane.GetComponent<Plane>().degrees;
-        recharged = plane.GetComponent<Plane>().recharged;
+        recharged = (float)Convert.ToInt32(plane.GetComponent<Plane>().recharged);
         sensorX = plane.GetComponent<Plane>().sensorX;
         sensorY = plane.GetComponent<Plane>().sensorY;
-        sensorTargetType = plane.GetComponent<Plane>().sensorTargetType;
-    }
+        sensorTargetType = Array.ConvertAll(plane.GetComponent<Plane>().sensorTargetType, item => (float) item);
 
-    private void Forward()
-    {
-        Rede rede = new(x, y, speed, degrees, recharged, sensorX, sensorY, sensorTargetType);
-        rede.Link();
-        rede.Forward();
-
+        //Organize data in array to sort the inputs
+        input = new()
+        {
+            x,
+            y,
+            speed,
+            degrees,
+            recharged,
+            sensorX,
+            sensorY,
+            sensorTargetType
+        };
     }
 }
-class Rede
+public class Network
 {
-    float x;
-    float y;
-    float speed;
-    float degrees;
-    bool recharged;
-    float[] sensorX = new float[21];
-    float[] sensorY = new float[21];
-    int[] sensorTargetType = new int[21];
+    //Layers(Number of neurons, index of layer)
+    public Layer[] layer = { new(67, 0), new(5, 1), new(5, 2), new(5, 3) };
+    //Data from plane
+    private readonly ArrayList input;
 
-    public Rede(float x, float y, float speed, float degrees, bool recharged, float[] sensorX, float[] sensorY, int[] sensorTargetType)
+    public Network(ArrayList input)
     {
-        this.x = x;
-        this.y = y;
-        this.speed = speed;
-        this.degrees = degrees;
-        this.recharged = recharged;
-        this.sensorX = sensorX;
-        this.sensorY = sensorY;
-        this.sensorTargetType = sensorTargetType;
+        //Receive data
+        this.input = input;
+
+        //Send data to input layer
+        InputNeuron();
     }
 
-    Layer[] layer = { new(67), new(5), new(5), new(5) };
-
-    private void Input()
+    private void CreateUI()
     {
+        //Create first UI, after creating the neurons
+        GameObject.Find("UI").GetComponent<NetworkUI>().Build(layer);
+    }
 
-        layer[0].neuron[0].output = x;
-        layer[0].neuron[1].output = y;
-        layer[0].neuron[2].output = speed;
-        layer[0].neuron[3].output = degrees;
-        layer[0].neuron[4].output = Convert.ToInt32(recharged);
-
-        for (int index = 5; index < sensorX.Length + sensorY.Length + sensorTargetType.Length; index++)
+    private void InputNeuron()
+    {
+        //totalIndex is inputIndex + sensors arrays indexs
+        //Ex: x,x,x,x,x,[x,x,x],[x,x,x],[x,x,x] inputIndex = 8, totalIndex = 14
+        int totalIndex = 0;
+        for (int inputIndex = 0; inputIndex < input.Count; inputIndex++)
         {
-            if (index < sensorX.Length) {
-                layer[0].neuron[index].output = sensorX[index];
-            } 
-            else if (index < sensorX.Length + sensorY.Length)
+            if (!input[inputIndex].GetType().IsArray)
             {
-                layer[0].neuron[index].output = sensorY[index];
+                //A neuron in input layer receives an input value
+                layer[0].neuron.Add(new(layer[0]));
+                layer[0].neuron[inputIndex].output = (float)input[inputIndex];
+                totalIndex++;
             }
             else
             {
-                layer[0].neuron[index].output = sensorTargetType[index];
+                //Iterating the sensors
+                float[] sensors = (float[])input[inputIndex];
+                for (int sensorIndex = 0; sensorIndex < sensors.Length; sensorIndex++)
+                {
+                    //A neuron in input layer receives an input value
+                    layer[0].neuron.Add(new(layer[0]));
+                    layer[0].neuron[totalIndex].output = sensors[sensorIndex];
+                    totalIndex++;
+                }
             }
         }
-
     }
 
-    public void Link()
+    public void CreateNeurons()
     {
+        //Create neurons to each layer
+        foreach (Layer layer in layer)
+        {
+            layer.CreateNeurons();
+        }
+    }
+
+    public void LinkLayers()
+    {
+        //Layer 1 connects with 2, etc
         for (int index = 0; index < layer.Length - 1; index++)
         {
-            layer[index].Link(layer[index], layer[index + 1]);
+            layer[index].LinkNeurons(layer[index], layer[index + 1]);
         }
+        //Activate UI
+        CreateUI();
     }
 
     public void Forward()
@@ -129,27 +156,41 @@ class Rede
     }
 }
 
-class Layer
+public class Layer
 {
-    int neuronCount;
+    //How many neurons there's in this layer
+    private readonly int neuronCount;
+    //Id
+    public int layerId;
+    //Neurons in this layer
     public List<Neuron> neuron = new();
+    //Connections that start in this layer
     public List<Link> link = new();
 
-    public Layer(int neuronCount)
+    public Layer(int neuronCount, int layerId)
     {
         this.neuronCount = neuronCount;
+        this.layerId = layerId;
     }
 
-    public void Link(Layer thisLayer, Layer nextLayer)
+    public void CreateNeurons()
     {
+        //Create neurons, limiting to how many must be
+        for (int index = neuron.Count; index < neuronCount; index++)
+        {
+            neuron.Add(new(this));
+        }
+    }
+
+    public void LinkNeurons(Layer thisLayer, Layer nextLayer)
+    {
+        //Iterates to connect every neuron in layer 1 with each neuron in layer 2
         for (int thisIndex = 0; thisIndex < thisLayer.neuronCount; thisIndex++)
         {
             for (int nextIndex = 0; nextIndex < nextLayer.neuronCount; nextIndex++)
             {
-                thisLayer.neuron.Add(new());
-                nextLayer.neuron.Add(new());
-
-                link.Add(new Link(thisLayer.neuron[thisIndex], nextLayer.neuron[nextIndex], UnityEngine.Random.Range(-10f, 10f), UnityEngine.Random.Range(-100f, 100f)));
+                //Create link between neurons
+                link.Add(new Link(thisLayer.neuron[thisIndex], nextLayer.neuron[nextIndex], UnityEngine.Random.Range(-100f, 100f), UnityEngine.Random.Range(-100f, 100f)));
             }
         }
     }
@@ -167,12 +208,19 @@ class Layer
         }
     }
 }
-class Link
+public class Link
 {
-    Neuron neuron1;
-    Neuron neuron2;
-    float weight;
-    float bias;
+    //UI reference
+    public GameObject render;
+
+    //Beginning of link
+    private Neuron neuron1;
+    //Ending
+    private Neuron neuron2;
+
+    //Used to proccess data
+    public float weight;
+    private float bias;
     public Link(Neuron neuron1, Neuron neuron2, float weight, float bias)
     {
         this.neuron1 = neuron1;
@@ -186,22 +234,31 @@ class Link
         neuron2.input += neuron1.output * weight + bias;
     }
 }
-class Neuron
+public class Neuron
 {
-    public float input;
-    public float output;
+    //UI reference
+    public GameObject render;
 
+    //Where this neuron is located
+    public Layer layer;
+
+    //Input and output
+    public float input = 0;
+    public float output = 0;
+
+    public Neuron(Layer layer)
+    {
+        this.layer = layer;
+    }
+
+    //Rectifier
     public float ReLU()
     {
+        //Activate if input > 0
         if (input > 0)
         {
-            Debug.Log(output);
-
             return output;
         }
-        Debug.Log(0);
         return 0;
     }
 }
-
-

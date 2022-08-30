@@ -9,6 +9,7 @@ TagManager:
   - Obstacle
   - Coin
   - Ammo
+  - Wall
   layers:
   - Default
   - TransparentFX

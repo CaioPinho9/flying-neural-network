@@ -1,7 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
+using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
+using UnityEngine.SocialPlatforms.Impl;
+using static UnityEditor.Experimental.GraphView.GraphView;
 
 public class NeuralNetwork : MonoBehaviour
 {
@@ -26,13 +30,24 @@ public class NeuralNetwork : MonoBehaviour
     public float[] sensorY = new float[21];
     public float[] sensorTargetType = new float[21];
 
+    //Timer
+    private float seconds;
+    private float lastSecond;
+    private GameObject timer;
+
     private GameObject plane;
     private ArrayList input;
     public Network network;
 
     // Start is called before the first frame update
-    void Start()
+    public void Start()
     {
+        //Timer
+        timer = GameObject.Find("Timer");
+        seconds = timer.GetComponent<Timer>().seconds;
+        lastSecond = seconds;
+
+        //Plane
         plane = transform.parent.gameObject;
         //Data from plane
         InputData();
@@ -45,9 +60,28 @@ public class NeuralNetwork : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
+    {
+        seconds = timer.GetComponent<Timer>().seconds;
+
+        if (!plane.GetComponent<Plane>().gameOver)
+        {
+            if (seconds - lastSecond > .5f)
+            {
+                RunNetwork();
+                lastSecond = seconds;
+            }
+            Control();
+        }
+    }
+
+    private void RunNetwork()
     {
         InputData();
+        network.InputUpdate(input);
+        network.Clear();
+        network.Forward();
+        Output();
     }
 
     private void InputData()
@@ -75,13 +109,36 @@ public class NeuralNetwork : MonoBehaviour
             sensorTargetType
         };
     }
+
+    private void Output()
+    {
+        //Debug.Log("Control");
+        //Debug.Log(network.layer[3].neuron[0].output);
+        //Debug.Log(network.layer[3].neuron[1].output);
+        //Debug.Log(network.layer[3].neuron[2].output);
+        //Debug.Log(network.layer[3].neuron[3].output);
+        //Debug.Log(network.layer[3].neuron[4].output);
+
+        left = (network.layer[3].neuron[0].output > 0) ? 1 : 0;
+        right = (network.layer[3].neuron[1].output > 0) ? 1 : 0;
+        up = (network.layer[3].neuron[2].output > 0) ? 1 : 0;
+        down = (network.layer[3].neuron[3].output > 0) ? 1 : 0;
+        shot = (network.layer[3].neuron[4].output > 0) ? 1 : 0;
+    }
+
+    private void Control()
+    {
+        plane.GetComponent<Plane>().vertical = -left + right;
+        plane.GetComponent<Plane>().horizontal = -down + up;
+        plane.GetComponent<Plane>().shot = (shot > 0);
+    }
 }
 public class Network
 {
     //Layers(Number of neurons, index of layer)
     public Layer[] layer = { new(67, 0), new(5, 1), new(5, 2), new(5, 3) };
     //Data from plane
-    private readonly ArrayList input;
+    public ArrayList input;
 
     public Network(ArrayList input)
     {
@@ -92,13 +149,13 @@ public class Network
         InputNeuron();
     }
 
-    private void CreateUI()
+    public void CreateUI(GameObject plane)
     {
         //Create first UI, after creating the neurons
-        GameObject.Find("UI").GetComponent<NetworkUI>().Build(layer);
+        GameObject.Find("UI").GetComponent<NetworkUI>().Build(plane);
     }
 
-    private void InputNeuron()
+    public void InputNeuron()
     {
         //totalIndex is inputIndex + sensors arrays indexs
         //Ex: x,x,x,x,x,[x,x,x],[x,x,x],[x,x,x] inputIndex = 8, totalIndex = 14
@@ -109,7 +166,8 @@ public class Network
             {
                 //A neuron in input layer receives an input value
                 layer[0].neuron.Add(new(layer[0]));
-                layer[0].neuron[inputIndex].output = (float)input[inputIndex];
+
+                layer[0].neuron[inputIndex].input = (float)input[inputIndex];
                 totalIndex++;
             }
             else
@@ -120,6 +178,33 @@ public class Network
                 {
                     //A neuron in input layer receives an input value
                     layer[0].neuron.Add(new(layer[0]));
+                    layer[0].neuron[totalIndex].input = sensors[sensorIndex];
+                    totalIndex++;
+                }
+            }
+        }
+    }
+
+    public void InputUpdate(ArrayList input)
+    {
+        //totalIndex is inputIndex + sensors arrays indexs
+        //Ex: x,x,x,x,x,[x,x,x],[x,x,x],[x,x,x] inputIndex = 8, totalIndex = 14
+        int totalIndex = 0;
+        for (int inputIndex = 0; inputIndex < input.Count; inputIndex++)
+        {
+            if (!input[inputIndex].GetType().IsArray)
+            {
+                //A neuron in input layer receives an input value
+                layer[0].neuron[inputIndex].output = (float)input[inputIndex];
+                totalIndex++;
+            }
+            else
+            {
+                //Iterating the sensors
+                float[] sensors = (float[])input[inputIndex];
+                for (int sensorIndex = 0; sensorIndex < sensors.Length; sensorIndex++)
+                {
+                    //A neuron in input layer receives an input value
                     layer[0].neuron[totalIndex].output = sensors[sensorIndex];
                     totalIndex++;
                 }
@@ -143,23 +228,49 @@ public class Network
         {
             layer[index].LinkNeurons(layer[index], layer[index + 1]);
         }
-        //Activate UI
-        CreateUI();
+    }
+
+    public void Clear()
+    {
+        foreach (Layer layer in layer)
+        {
+            if (layer.layerId > 0)
+            {
+                //Reset neuron input
+                for (int index = 0; index < layer.neuron.Count; index++)
+                {
+                    layer.neuron[index].input = 0;
+                    layer.neuron[index].output = 0;
+                }
+            }
+        }
     }
 
     public void Forward()
     {
-        for (int index = 0; index < layer.Length - 1; index++)
+        for (int index = 0; index < layer.Length; index++)
         {
             layer[index].Forward(layer[index]);
         }
     }
+
+    public void Mutate()
+    {
+        foreach (Layer layer in layer)
+        {
+            foreach (Link link in layer.link)
+            {
+                link.weight += UnityEngine.Random.Range(-1f, 1f);
+            }
+        }
+    }
+
 }
 
 public class Layer
 {
     //How many neurons there's in this layer
-    private readonly int neuronCount;
+    public readonly int neuronCount;
     //Id
     public int layerId;
     //Neurons in this layer
@@ -197,16 +308,29 @@ public class Layer
 
     public void Forward(Layer layer)
     {
-        for (int index = 0; index < layer.link.Count; index++)
+        if (layer.layerId > 0)
         {
-            layer.link[index].Weight();
+            for (int index = 0; index < layer.neuron.Count; index++)
+            {
+                //Debug.Log("ReLU");
+                //Debug.Log(layer.neuron[index].input);
+                layer.neuron[index].output = layer.neuron[index].ReLU();
+                //Debug.Log(layer.neuron[index].output);
+            }
         }
 
-        for (int index = 0; index < layer.neuron.Count; index++)
+        if (layer.layerId < 3)
         {
-            layer.neuron[index].ReLU();
+            for (int index = 0; index < layer.link.Count; index++)
+            {
+                //Debug.Log("Weight");
+                //Debug.Log(layer.link[index].neuron1.output);
+                layer.link[index].Weight();
+                //Debug.Log(layer.link[index].neuron2.input);
+            }
         }
     }
+    
 }
 public class Link
 {
@@ -214,9 +338,9 @@ public class Link
     public GameObject render;
 
     //Beginning of link
-    private Neuron neuron1;
+    public Neuron neuron1;
     //Ending
-    private Neuron neuron2;
+    public Neuron neuron2;
 
     //Used to proccess data
     public float weight;
@@ -257,7 +381,7 @@ public class Neuron
         //Activate if input > 0
         if (input > 0)
         {
-            return output;
+            return input;
         }
         return 0;
     }

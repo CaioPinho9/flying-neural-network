@@ -1,11 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
-using Unity.VisualScripting;
+using TMPro;
 using UnityEngine;
-using UnityEngine.AI;
-using static Unity.Burst.Intrinsics.Arm;
-using static UnityEditor.Experimental.GraphView.GraphView;
+using UnityEngine.UI;
 using Color = UnityEngine.Color;
 
 public class NetworkUI : MonoBehaviour
@@ -17,27 +13,75 @@ public class NetworkUI : MonoBehaviour
     public float neuronDistanceY;
 
     public GameObject neuronCircle;
-    private List<Neuron> neuronData;
-    private List<Link> linkData;
+    private List<Neuron> neuronData = new();
+    private List<Link> linkData = new();
+    private GameObject bestNetwork;
+    private Layer[] network;
 
     public Material material;
+
+    private bool built = false;
+
+    public int gen = 1;
 
     // Start is called before the first frame update
     void Start()
     {
-
     }
 
     // Update is called once per frame
-    void Update()
+    private void FixedUpdate()
     {
+        transform.GetChild(0).GetComponent<TextMeshPro>().text = "Gen " + gen.ToString();
+
+        if (built)
+        {
+            int renderIndex = 0;
+            int neuronIndex = 0;
+            foreach (Layer layer in bestNetwork.GetComponentInChildren<NeuralNetwork>().network.layer)
+            {
+                foreach (Neuron neuron in layer.neuron)
+                {
+
+                    //Show at most 8 neurons, one of each sensor
+                    if (neuronIndex < 6 || neuronIndex == 26 || neuronIndex == 47)
+                    {
+                        if (neuron.output > 0)
+                        {
+                            neuronData[renderIndex].render.GetComponentInChildren<SpriteRenderer>().color = Color.red;
+                        }
+                        else
+                        {
+                            neuronData[renderIndex].render.GetComponentInChildren<SpriteRenderer>().color = Color.white;
+                        }
+                        renderIndex++;
+                    }
+                    neuronIndex++;
+                }
+            }
+        }
     }
 
-    public void Build(Layer[] network)
+    public void Build(GameObject bestNetwork)
     {
+        this.bestNetwork = bestNetwork;
+        this.network = bestNetwork.GetComponentInChildren<NeuralNetwork>().network.layer;
+
+        //Clear
+        if (neuronData.Count > 0 && linkData.Count > 0)
+        {
+            foreach (Neuron neuron in neuronData)
+            {
+                Destroy(neuron.render);
+            }
+            foreach (Link link in linkData)
+            {
+                Destroy(link.render);
+            }
+        }
+
         neuronData = new();
         linkData = new();
-
 
         float x = startX;
         float y = startY;
@@ -89,6 +133,7 @@ public class NetworkUI : MonoBehaviour
             //Separate neurons
             x += neuronDistanceX;
             y = (float)(startY - neuronDistanceY * 1.5);
+            built = true;
         }
 
 

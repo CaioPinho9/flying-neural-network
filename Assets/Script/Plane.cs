@@ -1,7 +1,7 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using Quaternion = UnityEngine.Quaternion;
+using Vector3 = UnityEngine.Vector3;
 
 public class Plane : MonoBehaviour
 {
@@ -28,19 +28,30 @@ public class Plane : MonoBehaviour
 
     [Header("Gameplay")]
     //Gameplay
-    public bool godMode;
     public bool recharged;
-    private bool gameOver;
-    
+    public bool gameOver;
+    public int score = 0;
+    public int id;
+
+    public float opacity = .5f;
     public GameObject missile;
     private Animator anim;
 
     // Start is called before the first frame update
-    void Start()
+    public void Start()
     {
         anim = GetComponent<Animator>();
-        recharged = true;
+        transform.position = new(-10, 0, 0);
+        gameObject.GetComponent<Renderer>().enabled = true;
+        gameObject.GetComponent<SpriteRenderer>().color = new(1, 1, 1, opacity);
+        GameObject boom = transform.GetChild(0).gameObject;
+        boom.GetComponent<Renderer>().enabled = false;
+        boom.GetComponent<Animator>().enabled = false;
         gameOver = false;
+        speed = 0;
+        degrees = 0;
+        recharged = true;
+        score = 0;
     }
 
     // Update is called once per frame
@@ -56,16 +67,9 @@ public class Plane : MonoBehaviour
             Pitch();
 
             Move();
-        }
 
-        //If it goes outside of camera, player loses
-        //Time to render the plane
-        if (!GetComponent<Renderer>().isVisible && GameObject.Find("Timer").GetComponent<Timer>().seconds > 0.2f)
-        {
-            Death();
+            Animate(speed, horizontal);
         }
-
-        Animate(speed, horizontal);
     }
 
     private void Sensors()
@@ -141,6 +145,10 @@ public class Plane : MonoBehaviour
                 {
                     sensorTargetType[sensorIndex] = 5;
                 }
+                else if (targetType[sensorIndex].Equals("Wall"))
+                {
+                    sensorTargetType[sensorIndex] = 6;
+                }
                 else
                 {
                     sensorTargetType[sensorIndex] = 0;
@@ -164,9 +172,6 @@ public class Plane : MonoBehaviour
 
     private void Move()
     {
-        //Manual Input
-        horizontal = Input.GetAxis("Horizontal");
-
         //Limiting speed
         if ((horizontal > 0 && speed < 5) || (horizontal < 0 && speed > -1))
         {
@@ -179,9 +184,6 @@ public class Plane : MonoBehaviour
 
     private void Pitch()
     {
-        //Manual Input
-        vertical = Input.GetAxis("Vertical");
-
         //Increasing the input
         degrees += vertical * 2f;
 
@@ -225,11 +227,13 @@ public class Plane : MonoBehaviour
     {
         //Spawn in front of plane
         Vector3 missilePosition = new(transform.position.x, transform.position.y - 0.1f, transform.position.z);
-        Instantiate(missile, missilePosition, Quaternion.Euler(transform.eulerAngles));
+        GameObject missileInstantiated = Instantiate(missile, missilePosition, Quaternion.Euler(transform.eulerAngles));
+        missileInstantiated.GetComponent<Missile>().plane = transform.gameObject;
     }
 
     private void Death()
     {
+        Debug.Log("Died");
         //Activate explosion animation
         GameObject boom = transform.GetChild(0).gameObject;
         boom.GetComponent<Renderer>().enabled = true;
@@ -239,32 +243,19 @@ public class Plane : MonoBehaviour
         gameObject.GetComponent<Renderer>().enabled = false;
 
         //Stop the game
-        GameObject.Find("GameController").GetComponent<GameController>().gameOver = true;
         gameOver = true;
+        GameObject.Find("NeuralController").GetComponent<NeuralController>().planesAlive--;
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
         //If collide, player loses, unless in godmode
-        if (collision.gameObject.CompareTag("Obstacle") || collision.gameObject.CompareTag("Enemy"))
+        if (!gameOver && (collision.gameObject.CompareTag("Obstacle") || 
+                          collision.gameObject.CompareTag("Enemy") || 
+                          collision.gameObject.CompareTag("Ammo") || 
+                          collision.gameObject.CompareTag("Wall")))
         {
-            if(!godMode)
-            {
-                Death();
-            }
+            Death();
         }
-    }
-
-    public void Activate()
-    {
-        transform.position = new(-10, 0, 0);
-        gameObject.GetComponent<Renderer>().enabled = true;
-        GameObject boom = transform.GetChild(0).gameObject;
-        boom.GetComponent<Renderer>().enabled = false;
-        boom.GetComponent<Animator>().enabled = false;
-        gameOver = false;
-        speed = 0;
-        degrees = 0;
-        recharged = true;
     }
 }

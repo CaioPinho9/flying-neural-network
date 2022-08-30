@@ -22,8 +22,8 @@ public class GameController : MonoBehaviour
 
     //Timer
     private GameObject timer;
-    private float seconds;
-    private float lastSecond;
+    public float seconds;
+    public float lastSecond;
 
     //Objects to spawn
     public GameObject enemy;
@@ -65,6 +65,10 @@ public class GameController : MonoBehaviour
         if (!gameOver)
         {
             score += (int)(seconds - lastSecond) * 3;
+            foreach (GameObject plane in GameObject.FindGameObjectsWithTag("Player"))
+            {
+                plane.GetComponent<Plane>().score += (int)(seconds - lastSecond) * 3;
+            }
             lastSecond = seconds;
 
             //Display
@@ -76,21 +80,22 @@ public class GameController : MonoBehaviour
             GameObject[] ammo = GameObject.FindGameObjectsWithTag("Ammo");
             GameObject[] obstacle = GameObject.FindGameObjectsWithTag("Obstacle");
             GameObject[] missile = GameObject.FindGameObjectsWithTag("Missile");
+            GameObject[] coin = GameObject.FindGameObjectsWithTag("Coin");
 
             foreach (GameObject destroy in enemy) { Destroy(destroy); }
             foreach (GameObject destroy in ammo) { Destroy(destroy); }
             foreach (GameObject destroy in obstacle) { Destroy(destroy); }
             foreach (GameObject destroy in missile) { Destroy(destroy); }
+            foreach (GameObject destroy in coin) { Destroy(destroy); }
 
             score = 0;
             gameOver = false;
             timer.GetComponent<Timer>().seconds = 0;
             timer.GetComponent<Timer>().StartTime = Time.time;
-            seconds = Time.time;
-            lastSecond = Time.time;
-
-            GameObject[] player = GameObject.FindGameObjectsWithTag("Player");
-            foreach (GameObject plane in player) { plane.GetComponent<Plane>().Activate(); }
+            seconds = 0;
+            lastSecond = 0;
+            spawnTime = 0;
+            speed = 1;
         }
     }
 

@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Enemy : MonoBehaviour
@@ -112,7 +109,7 @@ public class Enemy : MonoBehaviour
         //When hit by missile, it's destroyed and player receive a bonus score
         if (collision.gameObject.CompareTag("Missile"))
         {
-            GameObject.Find("GameController").GetComponent<GameController>().score += 10;
+            collision.transform.GetComponent<Missile>().plane.GetComponent<Plane>().score += 10;
             Death();
         }
     }

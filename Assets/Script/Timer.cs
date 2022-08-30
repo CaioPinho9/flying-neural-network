@@ -7,7 +7,7 @@ public class Timer : MonoBehaviour
 {
     //Timer
     public float StartTime;
-    public int seconds;
+    public float seconds;
 
     //Stop
     private bool gameOver;

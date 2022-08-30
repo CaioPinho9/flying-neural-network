@@ -12,7 +12,7 @@ public class Missile : MonoBehaviour
 
     //Gameplay
     private bool destroyed;
-    private GameObject plane;
+    public GameObject plane;
 
     // Start is called before the first frame update
     void Start()
@@ -20,7 +20,6 @@ public class Missile : MonoBehaviour
         destroyed = false;
         accelaration = 1.3f;
         speed = 1.01f;
-        plane = GameObject.Find("Plane");
     }
 
     // Update is called once per frame
@@ -59,7 +58,7 @@ public class Missile : MonoBehaviour
     void OnTriggerEnter2D(Collider2D collision)
     {
         //Is destroyed if collide with anything, but the player
-        if (!collision.gameObject.CompareTag("Player"))
+        if (!collision.gameObject.CompareTag("Player") && !collision.gameObject.CompareTag("Missile"))
         {
             //Recharges plane when destroyed
             plane.GetComponent<Plane>().recharged = true;

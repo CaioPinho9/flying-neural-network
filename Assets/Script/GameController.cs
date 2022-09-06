@@ -1,9 +1,6 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class GameController : MonoBehaviour
 {
@@ -11,7 +8,7 @@ public class GameController : MonoBehaviour
     public bool gameOver = false;
 
     //Gameplay
-    public float speed = 1f;
+    public float speed = 2f;
     public int score;
 
     //Spawn
@@ -42,13 +39,6 @@ public class GameController : MonoBehaviour
         //Timer
         seconds = timer.GetComponent<Timer>().seconds;
 
-        //Increases game speed after 1 min, until 5 min
-        if (seconds > 60 && speed < 5)
-        {
-            //Each min increases the speed in 1
-            speed = seconds / 60;
-        }
-
         //Default obstacles
         defaultTime = 15f / speed;
         //When boss or loop spawns, the next obstacle have a delay to spawn
@@ -67,7 +57,10 @@ public class GameController : MonoBehaviour
             score += (int)(seconds - lastSecond) * 3;
             foreach (GameObject plane in GameObject.FindGameObjectsWithTag("Player"))
             {
-                plane.GetComponent<Plane>().score += (int)(seconds - lastSecond) * 3;
+                if (!plane.GetComponent<Plane>().gameOver)
+                {
+                    plane.GetComponent<Plane>().score += (int)(seconds - lastSecond) * 3;
+                }
             }
             lastSecond = seconds;
 
@@ -95,6 +88,7 @@ public class GameController : MonoBehaviour
             seconds = 0;
             lastSecond = 0;
             spawnTime = 0;
+            waitTime = 0;
             speed = 1;
         }
     }
@@ -132,20 +126,20 @@ public class GameController : MonoBehaviour
         //Random
         float randomNumber = UnityEngine.Random.Range(0, 100);
 
+        //Loop 20%
+        if (randomNumber < 20 && seconds > 60)
+        {
+            obstacle = loop;
+        }
         //Tower 50%
-        if (randomNumber < 50)
+        else if(randomNumber < 70)
         {
             obstacle = crateTower;
         }
         //Enemy 30%
-        else if (randomNumber < 80)
-        {
-            obstacle = enemy;
-        }
-        //Loop 20%
         else
         {
-            obstacle = loop;
+            obstacle = enemy;
         }
 
         return obstacle;

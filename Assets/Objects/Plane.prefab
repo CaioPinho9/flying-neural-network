@@ -104,6 +104,8 @@ MonoBehaviour:
   - 0
   - 0
   sensorTargetType: []
+  xInput: 0
+  xNeuron: 0
 --- !u!1 &5196405094478694341
 GameObject:
   m_ObjectHideFlags: 0
@@ -316,9 +318,18 @@ MonoBehaviour:
   speed: 0
   degrees: 0
   angle: 0
-  godMode: 0
   recharged: 0
+  gameOver: 0
+  score: 0
+  id: 0
+  copy: 0
+  dna: 
+  rna: 
+  opacity: 0.5
   missile: {fileID: 4779177638890855704, guid: a8ff3b48798c272428131628593e2cfe, type: 3}
+  layerMask:
+    serializedVersion: 2
+    m_Bits: 4
 --- !u!50 &1813464003
 Rigidbody2D:
   serializedVersion: 4

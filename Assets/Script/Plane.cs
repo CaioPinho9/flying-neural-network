@@ -31,15 +31,28 @@ public class Plane : MonoBehaviour
     public bool recharged;
     public bool gameOver;
     public int score = 0;
-    public int id;
 
+    [Header("Identity")]
+    public int id;
+    public bool copy;
+    public string dna;
+    public string rna = "";
     public float opacity = .5f;
     public GameObject missile;
     private Animator anim;
+    public LayerMask layerMask;
+
+    //Timer
+    private float seconds;
+    private float lastSecond;
+    private GameObject timer;
 
     // Start is called before the first frame update
     public void Start()
     {
+        timer = GameObject.Find("Timer");
+        seconds = timer.GetComponent<Timer>().seconds;
+        lastSecond = 0;
         anim = GetComponent<Animator>();
         transform.position = new(-10, 0, 0);
         gameObject.GetComponent<Renderer>().enabled = true;
@@ -48,7 +61,7 @@ public class Plane : MonoBehaviour
         boom.GetComponent<Renderer>().enabled = false;
         boom.GetComponent<Animator>().enabled = false;
         gameOver = false;
-        speed = 0;
+        speed = .5f;
         degrees = 0;
         recharged = true;
         score = 0;
@@ -57,6 +70,35 @@ public class Plane : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (copy)
+        {
+            dna = GetComponentInChildren<NeuralNetwork>().network.Copy();
+            copy = false;
+        }
+        if (rna != "")
+        {
+            GetComponentInChildren<NeuralNetwork>().network.Paste(rna);
+            rna = "";
+        }
+
+        seconds = timer.GetComponent<Timer>().seconds;
+        if (seconds - lastSecond > .5f)
+        {
+            GameObject[] obstacles = GameObject.FindGameObjectsWithTag("Obstacle");
+            foreach (GameObject obstacle in obstacles)
+            {
+                if (transform.position.x > obstacle.transform.position.x && !gameOver)
+                {
+                    score += 100;
+                }
+            }
+            lastSecond = seconds;
+            if (Math.Abs(transform.position.x) > 12 || Math.Abs(transform.position.y) > 6)
+            {
+                Death();
+            }
+        }
+
         //Until losing
         if (!gameOver)
         {
@@ -114,7 +156,7 @@ public class Plane : MonoBehaviour
         int sensorIndex = 0;
         foreach (Vector3 direction in sensorDirection)
         {
-            RaycastHit2D hit = Physics2D.Raycast(transform.position, direction, sensorLenght);
+            RaycastHit2D hit = Physics2D.Raycast(transform.position, direction, sensorLenght, ~layerMask);
             if (hit.transform != null)
             {
                 //Saving raycast hit position and object type
@@ -173,9 +215,9 @@ public class Plane : MonoBehaviour
     private void Move()
     {
         //Limiting speed
-        if ((horizontal > 0 && speed < 5) || (horizontal < 0 && speed > -1))
+        if ((horizontal > 0 && speed < 5) || (horizontal < 0 && speed > .5f))
         {
-            speed += horizontal / 10;
+            speed += horizontal / 5;
         }
 
         //Move
@@ -233,7 +275,7 @@ public class Plane : MonoBehaviour
 
     private void Death()
     {
-        Debug.Log("Died");
+        Debug.Log(GameObject.Find("NeuralController").GetComponent<NeuralController>().planesAlive);
         //Activate explosion animation
         GameObject boom = transform.GetChild(0).gameObject;
         boom.GetComponent<Renderer>().enabled = true;
@@ -244,7 +286,6 @@ public class Plane : MonoBehaviour
 
         //Stop the game
         gameOver = true;
-        GameObject.Find("NeuralController").GetComponent<NeuralController>().planesAlive--;
     }
 
     private void OnTriggerEnter2D(Collider2D collision)

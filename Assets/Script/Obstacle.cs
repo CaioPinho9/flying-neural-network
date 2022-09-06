@@ -6,6 +6,7 @@ using UnityEngine;
 public class Obstacle : MonoBehaviour
 {
     public float speed;
+
     // Update is called once per frame
     void Update()
     {
@@ -21,5 +22,7 @@ public class Obstacle : MonoBehaviour
         {
             Destroy(gameObject);
         }
+
+        
     }
 }

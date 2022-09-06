@@ -34,7 +34,7 @@ public class Coin : MonoBehaviour
         if (collision.gameObject.CompareTag("Player"))
         {
             //Coins have a great impact in the score
-            collision.transform.GetComponent<Plane>().score += 200;
+            collision.transform.GetComponent<Plane>().score += 2000;
 
             //Open loop exit
             Destroy(GameObject.Find("Exit"));

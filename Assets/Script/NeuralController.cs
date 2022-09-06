@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
+using static UnityEditor.Progress;
 
 public class NeuralController : MonoBehaviour
 {
@@ -12,7 +12,7 @@ public class NeuralController : MonoBehaviour
     private GameObject[] planes;
 
     public int planesAlive;
-    private readonly int planeQuantity = 10;
+    public int planeQuantity = 50;
 
     public GameObject plane;
     private GameController gameController;
@@ -30,6 +30,13 @@ public class NeuralController : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
+        planesAlive = planeQuantity;
+        planes = GameObject.FindGameObjectsWithTag("Player");
+        foreach (GameObject plane in planes)
+        {
+            planesAlive -= plane.GetComponent<Plane>().gameOver ? 1 : 0;
+        }
+
         if (planesAlive <= 0)
         {
             Debug.Log("Restart");
@@ -38,9 +45,7 @@ public class NeuralController : MonoBehaviour
             UpdateNetwork();
             planes = GameObject.FindGameObjectsWithTag("Player");
             planesAlive = planeQuantity;
-            GameObject.Find("Window Chart").GetComponent<WindowGraph>().score.Add(bestPlane.GetComponent<Plane>().score);
             GameObject.Find("UI").GetComponent<NetworkUI>().gen++;
-            foreach (GameObject plane in planes) { plane.GetComponent<Plane>().Start(); }
         }
     }
 
@@ -66,7 +71,7 @@ public class NeuralController : MonoBehaviour
                 bestPlane = plane;
             }
 
-            if (bestPlanes.Count < 5)
+            if (bestPlanes.Count < 30)
             {
                 bestPlanes.Add(plane);
             }
@@ -81,6 +86,9 @@ public class NeuralController : MonoBehaviour
                 }
             }
         }
+        GameObject.Find("Window Chart").GetComponent<WindowGraph>().score.Add(bestPlane.GetComponent<Plane>().score);
+
+        foreach (GameObject plane in planes) { plane.GetComponent<Plane>().Start(); }
         DeletePlanes();
     }
 
@@ -90,6 +98,7 @@ public class NeuralController : MonoBehaviour
         {
             planes[0].GetComponentInChildren<NeuralNetwork>().Start();
             planes[0].GetComponentInChildren<NeuralNetwork>().network.CreateUI(planes[0]);
+            Debug.Log("Done");
         }
         else
         {
@@ -112,7 +121,6 @@ public class NeuralController : MonoBehaviour
 
             if (destroy)
             {
-                Debug.Log(plane.GetComponent<Plane>().id);
                 Destroy(plane);
             }
         }
@@ -121,6 +129,9 @@ public class NeuralController : MonoBehaviour
 
     private void RecreatePlanes()
     {
+        int index = 0;
+        int lastIndex = -1;
+        string dna = "";
         for (int id = 0; id < planeQuantity; id++)
         {
             bool useId = true;
@@ -135,14 +146,23 @@ public class NeuralController : MonoBehaviour
 
             if (useId)
             {
-                GameObject instantiated = Instantiate(bestPlane);
+                int bestPlaneIndex = (int)Math.Floor(index / (double)(planeQuantity / 10));
+                GameObject planeParent = bestPlanes[bestPlaneIndex];
+                index++;
+                
+                if (bestPlaneIndex != lastIndex)
+                {
+                    dna = planeParent.GetComponentInChildren<NeuralNetwork>().network.Copy();
+                    lastIndex = bestPlaneIndex;
+                }
+                GameObject instantiated = Instantiate(planeParent);
                 instantiated.transform.SetParent(transform);
-                instantiated.GetComponentInChildren<NeuralNetwork>().network =
-                    bestPlane.GetComponentInChildren<NeuralNetwork>().network;
+                instantiated.GetComponentInChildren<NeuralNetwork>().Start();
+                instantiated.GetComponentInChildren<NeuralNetwork>().network.Paste(dna);
                 instantiated.GetComponentInChildren<NeuralNetwork>().network.Mutate();
                 instantiated.GetComponent<Plane>().id = id;
                 instantiated.GetComponent<Plane>().opacity = .5f;
-                instantiated.GetComponent<Plane>().gameOver = false;
+                instantiated.GetComponent<Plane>().Start();
             }
         }
     }

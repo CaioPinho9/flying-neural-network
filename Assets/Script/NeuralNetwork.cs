@@ -1,11 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
-using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
-using UnityEngine.SocialPlatforms.Impl;
-using static UnityEditor.Experimental.GraphView.GraphView;
 
 public class NeuralNetwork : MonoBehaviour
 {
@@ -37,7 +33,10 @@ public class NeuralNetwork : MonoBehaviour
 
     private GameObject plane;
     private ArrayList input;
-    public Network network;
+    public Network network = null;
+
+    public float xInput;
+    public float xNeuron;
 
     // Start is called before the first frame update
     public void Start()
@@ -45,18 +44,21 @@ public class NeuralNetwork : MonoBehaviour
         //Timer
         timer = GameObject.Find("Timer");
         seconds = timer.GetComponent<Timer>().seconds;
-        lastSecond = seconds;
+        lastSecond = 0;
 
         //Plane
         plane = transform.parent.gameObject;
-        //Data from plane
-        InputData();
-        //Data to neural network
-        network = new(input);
-        //Create all neurons
-        network.CreateNeurons();
-        //Connect layers
-        network.LinkLayers();
+        if (network == null)
+        {
+            //Data from plane
+            InputData();
+            //Data to neural network
+            network = new(input);
+            //Create all neurons
+            network.CreateNeurons();
+            //Connect layers
+            network.LinkLayers();
+        }
     }
 
     // Update is called once per frame
@@ -77,15 +79,17 @@ public class NeuralNetwork : MonoBehaviour
 
     private void RunNetwork()
     {
+        network.Clear();
         InputData();
         network.InputUpdate(input);
-        network.Clear();
         network.Forward();
         Output();
     }
 
     private void InputData()
     {
+        plane = transform.parent.gameObject;
+
         //Receive data from plane
         x = plane.transform.position.x;
         y = plane.transform.position.y;
@@ -108,22 +112,41 @@ public class NeuralNetwork : MonoBehaviour
             sensorY,
             sensorTargetType
         };
+        xInput = (float)input[0];
     }
 
     private void Output()
     {
-        //Debug.Log("Control");
-        //Debug.Log(network.layer[3].neuron[0].output);
-        //Debug.Log(network.layer[3].neuron[1].output);
-        //Debug.Log(network.layer[3].neuron[2].output);
-        //Debug.Log(network.layer[3].neuron[3].output);
-        //Debug.Log(network.layer[3].neuron[4].output);
+        /*
+        Debug.Log("Input");
+        Debug.Log(network.layer[0].neuron[0].output);
+        Debug.Log(network.layer[0].neuron[1].output);
+        Debug.Log(network.layer[0].neuron[2].output);
+        Debug.Log(network.layer[0].neuron[3].output);
+        Debug.Log(network.layer[0].neuron[4].output);
+        Debug.Log("Output");
+        Debug.Log(network.layer[4].neuron[0].output);
+        Debug.Log(network.layer[4].neuron[1].output);
+        Debug.Log(network.layer[4].neuron[2].output);
+        Debug.Log(network.layer[4].neuron[3].output);
+        Debug.Log(network.layer[4].neuron[4].output);
+        */
 
-        left = (network.layer[3].neuron[0].output > 0) ? 1 : 0;
-        right = (network.layer[3].neuron[1].output > 0) ? 1 : 0;
-        up = (network.layer[3].neuron[2].output > 0) ? 1 : 0;
-        down = (network.layer[3].neuron[3].output > 0) ? 1 : 0;
-        shot = (network.layer[3].neuron[4].output > 0) ? 1 : 0;
+        left = (network.layer[4].neuron[0].output > 0) ? 1 : 0;
+        right = (network.layer[4].neuron[1].output > 0) ? 1 : 0;
+        up = (network.layer[4].neuron[2].output > 0) ? 1 : 0;
+        down = (network.layer[4].neuron[3].output > 0) ? 1 : 0;
+        shot = (network.layer[4].neuron[4].output > 0) ? 1 : 0;
+
+        /*
+        Debug.Log("Control");
+        Debug.Log(left);
+        Debug.Log(right);
+        Debug.Log(up);
+        Debug.Log(down);
+        Debug.Log(shot);
+        */
+
     }
 
     private void Control()
@@ -136,9 +159,11 @@ public class NeuralNetwork : MonoBehaviour
 public class Network
 {
     //Layers(Number of neurons, index of layer)
-    public Layer[] layer = { new(67, 0), new(5, 1), new(5, 2), new(5, 3) };
+    public Layer[] layer = { new(67, 0), new(26, 1), new(52, 2), new(26, 3), new(5, 4) };
     //Data from plane
     public ArrayList input;
+    public string dna;
+    private float mutate = 10;
 
     public Network(ArrayList input)
     {
@@ -147,6 +172,40 @@ public class Network
 
         //Send data to input layer
         InputNeuron();
+    }
+
+    public String Copy()
+    {
+        dna = "";
+        foreach (Layer layer in layer)
+        {
+            foreach (Link link in layer.link)
+            {
+                dna += link.weight + "/" + link.bias + ";";
+            }
+        }
+        return dna;
+    }
+
+    public void Paste(String dna)
+    {
+        String[] rna = dna.Split(";");
+        int index = 0;
+        //Debug.Log("Dna");
+        //Debug.Log(dna);
+        foreach (Layer layer in layer)
+        {
+            foreach (Link link in layer.link)
+            {
+                String[] gene = rna[index].Split("/");
+                link.weight = float.Parse(gene[0]);
+                link.bias = float.Parse(gene[1]);
+                //Debug.Log("Gene");
+                //Debug.Log(gene[0]);
+                //Debug.Log(gene[1]);
+                index++;
+            }
+        }
     }
 
     public void CreateUI(GameObject plane)
@@ -167,7 +226,7 @@ public class Network
                 //A neuron in input layer receives an input value
                 layer[0].neuron.Add(new(layer[0]));
 
-                layer[0].neuron[inputIndex].input = (float)input[inputIndex];
+                layer[0].neuron[inputIndex].output = (float)input[inputIndex];
                 totalIndex++;
             }
             else
@@ -178,7 +237,7 @@ public class Network
                 {
                     //A neuron in input layer receives an input value
                     layer[0].neuron.Add(new(layer[0]));
-                    layer[0].neuron[totalIndex].input = sensors[sensorIndex];
+                    layer[0].neuron[totalIndex].output = sensors[sensorIndex];
                     totalIndex++;
                 }
             }
@@ -226,7 +285,14 @@ public class Network
         //Layer 1 connects with 2, etc
         for (int index = 0; index < layer.Length - 1; index++)
         {
-            layer[index].LinkNeurons(layer[index], layer[index + 1]);
+            if (index == 0)
+            {
+                layer[index].LinkSensors(layer[index], layer[index + 1]);
+            }
+            else
+            {
+                layer[index].LinkNeurons(layer[index], layer[index + 1]);
+            }
         }
     }
 
@@ -260,7 +326,33 @@ public class Network
         {
             foreach (Link link in layer.link)
             {
-                link.weight += UnityEngine.Random.Range(-1f, 1f);
+                float random = UnityEngine.Random.Range(-mutate, mutate);
+                if (link.weight < mutate && link.weight > -mutate)
+                {
+                    link.weight += random;
+                } 
+                else if (link.weight >= mutate)
+                {
+                    link.weight -= Math.Abs(random);
+                } 
+                else
+                {
+                    link.weight += Math.Abs(random);
+                }
+
+                random = UnityEngine.Random.Range(-mutate, mutate);
+                if (link.bias < mutate && link.bias > -mutate)
+                {
+                    link.bias += random;
+                }
+                else if (link.weight >= mutate)
+                {
+                    link.bias -= Math.Abs(random);
+                }
+                else
+                {
+                    link.bias += Math.Abs(random);
+                }
             }
         }
     }
@@ -277,6 +369,7 @@ public class Layer
     public List<Neuron> neuron = new();
     //Connections that start in this layer
     public List<Link> link = new();
+    private float randomStart = 100;
 
     public Layer(int neuronCount, int layerId)
     {
@@ -293,6 +386,28 @@ public class Layer
         }
     }
 
+    public void LinkSensors(Layer thisLayer, Layer nextLayer)
+    {
+
+        //Iterates to connect every neuron in layer 1 with each neuron in layer 2
+        int nextIndex = 0;
+        for (int thisIndex = 0; thisIndex < 26; )
+        {
+            if (thisIndex < 6)
+            {
+                link.Add(new Link(thisLayer.neuron[thisIndex], nextLayer.neuron[thisIndex], UnityEngine.Random.Range(-randomStart, randomStart), UnityEngine.Random.Range(-randomStart, randomStart)));
+            }
+            else
+            {
+                link.Add(new Link(thisLayer.neuron[thisIndex], nextLayer.neuron[nextIndex], UnityEngine.Random.Range(-randomStart, randomStart), UnityEngine.Random.Range(-randomStart, randomStart)));
+                link.Add(new Link(thisLayer.neuron[thisIndex + 21], nextLayer.neuron[nextIndex], UnityEngine.Random.Range(-randomStart, randomStart), UnityEngine.Random.Range(-randomStart, randomStart)));
+                link.Add(new Link(thisLayer.neuron[thisIndex + 42], nextLayer.neuron[nextIndex], UnityEngine.Random.Range(-randomStart, randomStart), UnityEngine.Random.Range(-randomStart, randomStart)));
+            }
+            thisIndex++;
+            nextIndex++;
+        }
+    }
+
     public void LinkNeurons(Layer thisLayer, Layer nextLayer)
     {
         //Iterates to connect every neuron in layer 1 with each neuron in layer 2
@@ -301,7 +416,7 @@ public class Layer
             for (int nextIndex = 0; nextIndex < nextLayer.neuronCount; nextIndex++)
             {
                 //Create link between neurons
-                link.Add(new Link(thisLayer.neuron[thisIndex], nextLayer.neuron[nextIndex], UnityEngine.Random.Range(-100f, 100f), UnityEngine.Random.Range(-100f, 100f)));
+                link.Add(new Link(thisLayer.neuron[thisIndex], nextLayer.neuron[nextIndex], UnityEngine.Random.Range(-randomStart, randomStart), UnityEngine.Random.Range(-randomStart, randomStart)));
             }
         }
     }
@@ -319,13 +434,13 @@ public class Layer
             }
         }
 
-        if (layer.layerId < 3)
+        if (layer.layerId < 4)
         {
             for (int index = 0; index < layer.link.Count; index++)
             {
                 //Debug.Log("Weight");
                 //Debug.Log(layer.link[index].neuron1.output);
-                layer.link[index].Weight();
+                layer.link[index].neuron2.input += layer.link[index].Weight();
                 //Debug.Log(layer.link[index].neuron2.input);
             }
         }
@@ -344,7 +459,7 @@ public class Link
 
     //Used to proccess data
     public float weight;
-    private float bias;
+    public float bias;
     public Link(Neuron neuron1, Neuron neuron2, float weight, float bias)
     {
         this.neuron1 = neuron1;
@@ -353,9 +468,9 @@ public class Link
         this.bias = bias;
     }
 
-    public void Weight()
+    public float Weight()
     {
-        neuron2.input += neuron1.output * weight + bias;
+        return neuron1.output * weight + bias;
     }
 }
 public class Neuron

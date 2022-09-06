@@ -11,7 +11,7 @@ public class WindowGraph : MonoBehaviour
     [SerializeField] private Sprite circleSprite;
     private RectTransform graphContainer;
     private List<GameObject> gameObjectList;
-    public List<int> score = new() { 0,141,412,512,12,312,41,2,543,5,23,52,252,56};
+    public List<int> score = new();
     private int lastScoreCount = 0;
     private int highScore;
 

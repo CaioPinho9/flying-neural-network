@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: -201390574822805075}
   - component: {fileID: 4979086840917914139}
   - component: {fileID: 1838353440123156008}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Missile
   m_TagString: Missile
   m_Icon: {fileID: 0}
@@ -150,10 +150,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   speed: 0
   accelaration: 0
-  xSpeed: 0
-  ySpeed: 0
   degrees: 0
-  angle: 0
+  plane: {fileID: 0}
 --- !u!95 &1838353440123156008
 Animator:
   serializedVersion: 4
@@ -185,7 +183,7 @@ GameObject:
   - component: {fileID: 2689886900179362247}
   - component: {fileID: 4577830680418047627}
   - component: {fileID: 6543382376400958941}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Boom
   m_TagString: Untagged
   m_Icon: {fileID: 0}

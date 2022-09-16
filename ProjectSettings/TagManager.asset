@@ -10,11 +10,12 @@ TagManager:
   - Coin
   - Ammo
   - Wall
+  - Link
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Coin
   - Water
   - UI
   - 

@@ -31,10 +31,10 @@ public class Coin : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.gameObject.CompareTag("Player"))
+        if (collision.gameObject.CompareTag("Player") && !collision.GetComponent<Player>().gameOver)
         {
             //Coins have a great impact in the score
-            collision.transform.GetComponent<Plane>().score += 2000;
+            collision.transform.GetComponent<Player>().score += 2000;
 
             //Open loop exit
             Destroy(GameObject.Find("Exit"));

@@ -1,5 +1,4 @@
 using System;
-using TMPro;
 using UnityEngine;
 
 public class GameController : MonoBehaviour
@@ -16,6 +15,7 @@ public class GameController : MonoBehaviour
     public float waitTime = 0f;
     public float defaultTime;
     public float hardTime;
+    private int id = 0;
 
     //Timer
     private GameObject timer;
@@ -55,42 +55,45 @@ public class GameController : MonoBehaviour
         if (!gameOver)
         {
             score += (int)(seconds - lastSecond) * 3;
-            foreach (GameObject plane in GameObject.FindGameObjectsWithTag("Player"))
+            foreach (GameObject player in GameObject.FindGameObjectsWithTag("Player"))
             {
-                if (!plane.GetComponent<Plane>().gameOver)
+                if (!player.GetComponent<Player>().gameOver)
                 {
-                    plane.GetComponent<Plane>().score += (int)(seconds - lastSecond) * 3;
+                    player.GetComponent<Player>().score += (int)(seconds - lastSecond) * 3;
                 }
             }
             lastSecond = seconds;
-
-            //Display
-            transform.GetChild(1).GetComponent<TextMeshPro>().text = score.ToString("00000");
-        } 
-        else
-        {
-            GameObject[] enemy = GameObject.FindGameObjectsWithTag("Enemy");
-            GameObject[] ammo = GameObject.FindGameObjectsWithTag("Ammo");
-            GameObject[] obstacle = GameObject.FindGameObjectsWithTag("Obstacle");
-            GameObject[] missile = GameObject.FindGameObjectsWithTag("Missile");
-            GameObject[] coin = GameObject.FindGameObjectsWithTag("Coin");
-
-            foreach (GameObject destroy in enemy) { Destroy(destroy); }
-            foreach (GameObject destroy in ammo) { Destroy(destroy); }
-            foreach (GameObject destroy in obstacle) { Destroy(destroy); }
-            foreach (GameObject destroy in missile) { Destroy(destroy); }
-            foreach (GameObject destroy in coin) { Destroy(destroy); }
-
-            score = 0;
-            gameOver = false;
-            timer.GetComponent<Timer>().seconds = 0;
-            timer.GetComponent<Timer>().StartTime = Time.time;
-            seconds = 0;
-            lastSecond = 0;
-            spawnTime = 0;
-            waitTime = 0;
-            speed = 1;
         }
+    }
+
+    public static float Distance(float x1, float y1, float x2, float y2)
+    {
+        return (float)Math.Sqrt(Math.Pow((x2 - x1), 2) + Math.Pow((y2 - y1), 2));
+    }
+    public void Restart()
+    {
+        GameObject[] enemy = GameObject.FindGameObjectsWithTag("Enemy");
+        GameObject[] ammo = GameObject.FindGameObjectsWithTag("Ammo");
+        GameObject[] obstacle = GameObject.FindGameObjectsWithTag("Obstacle");
+        GameObject[] missile = GameObject.FindGameObjectsWithTag("Missile");
+        GameObject[] coin = GameObject.FindGameObjectsWithTag("Coin");
+
+        foreach (GameObject destroy in enemy) { Destroy(destroy); }
+        foreach (GameObject destroy in ammo) { Destroy(destroy); }
+        foreach (GameObject destroy in obstacle) { Destroy(destroy); }
+        foreach (GameObject destroy in missile) { Destroy(destroy); }
+        foreach (GameObject destroy in coin) { Destroy(destroy); }
+
+        score = 0;
+        gameOver = false;
+        timer.GetComponent<Timer>().seconds = 0;
+        timer.GetComponent<Timer>().StartTime = Time.time;
+        seconds = 0;
+        lastSecond = 0;
+        spawnTime = 0;
+        waitTime = 0;
+        speed = 1;
+        id = 0;
     }
 
     void Spawn()
@@ -114,7 +117,11 @@ public class GameController : MonoBehaviour
                     side = 180;
                 }
 
-                Instantiate(obstacle, coord, Quaternion.Euler(new Vector3(0f, side, 0f)));
+                GameObject instantiated = Instantiate(obstacle, coord, Quaternion.Euler(new Vector3(0f, side, 0f)));
+                if (obstacle.name == "Crate Tower")
+                {
+                    instantiated.GetComponent<Obstacle>().id = id;
+                }
             }
         }
     }
@@ -135,6 +142,7 @@ public class GameController : MonoBehaviour
         else if(randomNumber < 70)
         {
             obstacle = crateTower;
+            id++;
         }
         //Enemy 30%
         else
@@ -152,6 +160,7 @@ public class GameController : MonoBehaviour
 
         if (obstacle.name == "Crate Tower")
         {
+            /*
             //UP 25%
             if (randomNumber < 25)
             {
@@ -163,7 +172,9 @@ public class GameController : MonoBehaviour
                 position[0] = new Vector3(15f, -2.44f, 0f);
             }
             //DOUBLE UP 25%
-            else if (randomNumber < 75)
+            else 
+            */
+            if (randomNumber <= 50)
             {
                 position[0] = new Vector3(15f, 2.44f, 0f);
                 position[1] = new Vector3(15f, -0.12f, 0f);

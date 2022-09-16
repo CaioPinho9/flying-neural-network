@@ -109,7 +109,7 @@ public class Enemy : MonoBehaviour
         //When hit by missile, it's destroyed and player receive a bonus score
         if (collision.gameObject.CompareTag("Missile"))
         {
-            collision.transform.GetComponent<Missile>().plane.GetComponent<Plane>().score += 50;
+            collision.transform.GetComponent<Missile>().player.GetComponent<Player>().score += 50;
             Death();
         }
     }

@@ -1,19 +1,20 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
-using TMPro;
-using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
-using static UnityEditor.Experimental.GraphView.GraphView;
+using UnityEngine.UI;
 using Color = UnityEngine.Color;
 
 public class NetworkUI : MonoBehaviour
 {
-    public float startY;
     public float startX;
+    public float startY;
 
-    public float neuronDistanceX;
-    public float neuronDistanceY;
+    public float width;
+    public float height;
+
+    private float neuronDistanceX;
+    private float neuronDistanceY;
 
     public GameObject neuronCircle;
     private List<Neuron> neuronData = new();
@@ -24,23 +25,21 @@ public class NetworkUI : MonoBehaviour
     public Material material;
 
     private bool built = false;
+    private float weightLimit;
 
-    public int gen = 1;
 
-    // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
+        weightLimit = NeuralNetwork.weightLimit;
     }
 
     // Update is called once per frame
     private void FixedUpdate()
     {
-        transform.GetChild(0).GetComponent<TextMeshPro>().text = "Gen " + gen.ToString();
-
         if (built && bestNetwork != null)
         {
             int renderIndex = 0;
-            foreach (Layer layer in bestNetwork.GetComponentInChildren<NeuralNetwork>().network.layer)
+            foreach (Layer layer in bestNetwork.GetComponent<Player>().network.layer)
             {
                 foreach (Neuron neuron in layer.neuron)
                 {
@@ -52,6 +51,7 @@ public class NetworkUI : MonoBehaviour
                     {
                         neuronData[renderIndex].render.GetComponentInChildren<SpriteRenderer>().color = new(1, 1, 1);
                     }
+                    neuronData[renderIndex].render.transform.GetChild(1).GetComponentInChildren<Text>().text = neuron.output.ToString("0.00");
                     renderIndex++;
                 }
             }
@@ -61,7 +61,7 @@ public class NetworkUI : MonoBehaviour
     public void Build(GameObject bestNetwork)
     {
         this.bestNetwork = bestNetwork;
-        this.network = bestNetwork.GetComponentInChildren<NeuralNetwork>().network.layer;
+        network = bestNetwork.GetComponent<Player>().network.layer;
 
         //Clear
         if (neuronData.Count > 0 && linkData.Count > 0)
@@ -70,9 +70,10 @@ public class NetworkUI : MonoBehaviour
             {
                 Destroy(neuron.render);
             }
-            foreach (Link link in linkData)
+            GameObject[] links = GameObject.FindGameObjectsWithTag("Link");
+            foreach (GameObject link in links)
             {
-                Destroy(link.render);
+                Destroy(link);
             }
         }
 
@@ -80,21 +81,61 @@ public class NetworkUI : MonoBehaviour
         linkData = new();
 
         float x = startX;
-        float y = startY;
+        float y;
+        float layerSize = 0;
+        float biggestLayer = 0;
+        float secondBiggestSize = 0;
+        neuronDistanceX = width / network.Length;
+
+        foreach (Layer layer in network)
+        {
+            if (layer.neuronCount > layerSize)
+            {
+                layerSize = layer.neuronCount;
+                biggestLayer = layer.layerId;
+            }
+        }
+
+        foreach (Layer layer in network)
+        {
+            if (layer.neuronCount > secondBiggestSize && layer.neuronCount != layerSize)
+            {
+                secondBiggestSize = layer.neuronCount;
+            }
+        }
 
         //Create neurons by layer
         foreach (Layer layer in network)
         {
-            neuronDistanceX = 6.8f/ layer.neuronCount;
+            neuronDistanceY = height / (secondBiggestSize - 1);
+            if (layer.layerId == biggestLayer)
+            {
+                neuronDistanceY = height / (layerSize - 1);
+            }
+
+            float layerDistance = 0;
+            if (layer.neuronCount != layerSize)
+            {
+                if (layer.neuronCount % 2 > 0)
+                {
+                    layerDistance = (height / 2) - (float)Math.Floor((double)layer.neuronCount / 2) * neuronDistanceY;
+                }
+                else
+                {
+                    layerDistance = (height / 2) - ((float)Math.Floor((double)layer.neuronCount / 2) - .5f) * neuronDistanceY;
+                }
+            }
+            y = (float)(startY - layerDistance);
+
             //Neurons from layer
             for (int neuronIndex = 0; neuronIndex < layer.neuron.Count; neuronIndex++)
             {
                 Neuron neuron = layer.neuron[neuronIndex];
 
-                //Centralizing neurons
+                //Separating neurons
                 if (neuronIndex != 0)
                 {
-                    x -= neuronDistanceX;
+                    y -= neuronDistanceY;
                 }
 
                 //Create neuron gameobject
@@ -108,7 +149,7 @@ public class NetworkUI : MonoBehaviour
                 {
                     neuron.render.GetComponentInChildren<SpriteRenderer>().color = Color.red;
                 }
-                
+
             }
 
             //Links from layer
@@ -121,17 +162,17 @@ public class NetworkUI : MonoBehaviour
             }
 
             //Separate neurons
-            x = (float)(startX - neuronDistanceX);
-            y -= neuronDistanceY;
+            x += neuronDistanceX;
             built = true;
         }
 
-        int nextLayerIndex = 68;
+        /*
+        int nextLayerIndex = network[0].neuronCount;
         for (int linkIndex = 0; linkIndex < network[0].link.Count; linkIndex++)
         {
             ArrayList colorWidth = ColorWidth(linkIndex);
 
-            if (linkIndex < 5)
+            if (linkIndex < 2)
             {
                 linkData[linkIndex].render = DrawLine(neuronData[linkIndex].render.transform.position, neuronData[nextLayerIndex].render.transform.position, (Color)colorWidth[0], (float)colorWidth[1]);
                 nextLayerIndex++;
@@ -147,9 +188,8 @@ public class NetworkUI : MonoBehaviour
                 linkData[linkIndex].render = DrawLine(neuronData[linkIndex].render.transform.position, neuronData[nextLayerIndex].render.transform.position, (Color)colorWidth[0], (float)colorWidth[1]);
                 nextLayerIndex++;
             }
-            
         }
-        
+        */
 
         //Create links
         int index = 0;
@@ -157,17 +197,22 @@ public class NetworkUI : MonoBehaviour
         {
             foreach (Neuron neuron2 in neuronData)
             {
-                if (neuron1.layer.layerId == 0)
-                {
-                    break;
-                }
                 //Check if neuron2 is in the next layer
                 if (neuron1.layer.layerId == neuron2.layer.layerId - 1)
                 {
+                    /*
+                    Filling empty links
                     if (index >= linkData.Count)
                     {
-                        linkData.Add(new(neuron1, neuron1, Random.Range(-100, 100), Random.Range(-100, 100)));
+                        linkData.Add(new(neuron1, neuron1, Random.Range(-weightLimit, weightLimit), Random.Range(-weightLimit, weightLimit)));
                     }
+                    */
+                    /*
+                    if (neuron1.layer.layerId == 0)
+                    {
+                        break;
+                    }
+                    */
 
                     ArrayList colorWidth = ColorWidth(index);
 
@@ -182,9 +227,9 @@ public class NetworkUI : MonoBehaviour
     private ArrayList ColorWidth(int index)
     {
         //Width is based on the weight of the link
-        float weight = Mathf.Abs(linkData[index].weight / 100);
-        float width = 0.03f * weight;
-        if (width < 0.01f) { width = 0.01f; }
+        float weight = Mathf.Abs(linkData[index].weight / weightLimit);
+        float width = 0.04f * weight;
+        if (width < 0.02f) { width = 0.02f; }
 
         //Color is based on how positive or negative the weight is
         Color color;
@@ -213,8 +258,9 @@ public class NetworkUI : MonoBehaviour
         GameObject myLine = new();
         myLine.transform.position = start;
         myLine.AddComponent<LineRenderer>();
+        myLine.tag = "Link";
         LineRenderer lr = myLine.GetComponent<LineRenderer>();
-        lr.sortingOrder = 4;
+        lr.sortingOrder = 6;
         lr.material = new Material(material);
         lr.startColor = color;
         lr.endColor = color;

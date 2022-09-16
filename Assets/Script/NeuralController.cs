@@ -1,169 +1,220 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
-using static UnityEditor.Progress;
+using UnityEngine.UI;
 
 public class NeuralController : MonoBehaviour
 {
-    public bool restart;
+    [Header("Config")]
+    public int playerAmmount;
+    public int playerSurviveAmmount;
+    public float randomAmmount;
+    public GameObject prefab;
 
-    private GameObject bestPlane;
-    private List<GameObject> bestPlanes;
-    private GameObject[] planes;
+    [Header("Manage")]
+    public int playerAlive;
+    public GameObject bestPlayer;
+    public GameObject lastBest;
+    public List<GameObject> bestPlayers;
+    public GameObject[] players;
+    private int gen = 0;
 
-    public int planesAlive;
-    public int planeQuantity = 50;
-
-    public GameObject plane;
-    private GameController gameController;
+    [Header("Timer")]
+    public float time;
+    public float queueTime = .5f;
 
     // Start is called before the first frame update
     void Start()
     {
-        gameController = GameObject.Find("GameController").GetComponent<GameController>();
-        Create();
-        planes = GameObject.FindGameObjectsWithTag("Player");
-        planesAlive = planeQuantity;
-        UpdateNetwork();
+        Create(playerAmmount);
+        players = GameObject.FindGameObjectsWithTag("Player");
+        players[0].GetComponent<Player>().Start();
+        lastBest = players[0];
+        GameObject.Find("UI").GetComponent<NetworkUI>().Build(players[0]);
+        GameObject.Find("alive").GetComponent<Text>().text = "Birds " + playerAmmount.ToString() + " / " + playerAmmount.ToString();
+        Check();
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
-        planesAlive = planeQuantity;
-        planes = GameObject.FindGameObjectsWithTag("Player");
-        foreach (GameObject plane in planes)
+        if (time > queueTime)
         {
-            planesAlive -= plane.GetComponent<Plane>().gameOver ? 1 : 0;
+            Check();
+
+            time = 0;
+        }
+        time += Time.deltaTime;
+
+        /*
+        if (nextObstacle == null || nextObstacle.transform.position.x < -5f)
+        {
+            DetectObstacle();
         }
 
-        if (planesAlive <= 0)
-        {
-            Debug.Log("Restart");
-            gameController.gameOver = true;
-            BestPlane();
-            UpdateNetwork();
-            planes = GameObject.FindGameObjectsWithTag("Player");
-            planesAlive = planeQuantity;
-            GameObject.Find("UI").GetComponent<NetworkUI>().gen++;
-        }
-    }
+        ObstacleCoords();
+        */
 
-    private void Create()
-    {
-        for (int id = 0; id < planeQuantity; id++)
+        if (playerAlive <= 0)
         {
-            GameObject instantiated = Instantiate(plane);
-            instantiated.transform.SetParent(transform);
-            instantiated.GetComponent<Plane>().id = id;
+            Check();
+            Restart();
         }
     }
 
-    private void BestPlane()
+    /*
+    void DetectObstacle()
     {
-        planes = GameObject.FindGameObjectsWithTag("Player");
-        bestPlane = planes[0];
-        bestPlanes = new();
-        foreach (GameObject plane in planes)
+        GameObject[] obstacles = GameObject.FindGameObjectsWithTag("Obstacle");
+        if (obstacles != null)
         {
-            if(bestPlane.GetComponent<Plane>().score < plane.GetComponent<Plane>().score)
+            foreach (GameObject obstacle in obstacles)
             {
-                bestPlane = plane;
+                if (obstacle.GetComponent<Obstacle>() != null && obstacle.GetComponent<Obstacle>().id == obstacleId)
+                {
+                    nextObstacle = obstacle;
+                    obstacleId++;
+                    break;
+                }
+            }
+        }
+    }
+
+    void ObstacleCoords()
+    {
+        foreach (GameObject player in players)
+        {
+            if (nextObstacle != null)
+            {
+                player.GetComponent<Player>().obstacle = nextObstacle;
+            }
+        }
+    }
+    */
+
+    void Create(int ammount)
+    {
+        for (int i = 0; i < ammount; i++)
+        {
+            GameObject plane = Instantiate(prefab);
+            plane.transform.SetParent(transform, false);
+            plane.GetComponent<Player>().id = i;
+        }
+    }
+
+    void Check()
+    {
+        playerAlive = playerAmmount;
+        bestPlayer = players[0];
+        bestPlayers.Clear();
+        foreach (GameObject bird in players)
+        {
+            bird.GetComponent<Player>().visible = false;
+            if (bird.GetComponent<Player>().gameOver)
+            {
+                playerAlive--;
+                GameObject.Find("alive").GetComponent<Text>().text = "Player " + playerAlive.ToString() + " / " + playerAmmount.ToString();
             }
 
-            if (bestPlanes.Count < 30)
+            if (bestPlayer.GetComponent<Player>().score < bird.GetComponent<Player>().score)
             {
-                bestPlanes.Add(plane);
+                bestPlayer = bird;
+                bird.GetComponent<Player>().visible = true;
+            }
+
+            if (bestPlayers.Count < playerSurviveAmmount)
+            {
+                bestPlayers.Add(bird);
+                bird.GetComponent<Player>().visible = true;
             }
             else
             {
-                for (int index = 0; index < bestPlanes.Count; index++)
+                int index = 0;
+                for (int i = 0; i < bestPlayers.Count; i++)
                 {
-                    if (bestPlanes[index].GetComponent<Plane>().score < plane.GetComponent<Plane>().score)
+                    for (int j = 0; j < bestPlayers.Count; j++)
                     {
-                        bestPlanes[index] = plane;
+                        if (bestPlayers[i].GetComponent<Player>().score < bestPlayers[j].GetComponent<Player>().score &&
+                            bestPlayers[i].GetComponent<Player>().score < bestPlayers[index].GetComponent<Player>().score)
+                        {
+                            index = i;
+                        }
                     }
                 }
-            }
-        }
-        GameObject.Find("Window Chart").GetComponent<WindowGraph>().score.Add(bestPlane.GetComponent<Plane>().score);
 
-        foreach (GameObject plane in planes) { plane.GetComponent<Plane>().Start(); }
-        DeletePlanes();
-    }
-
-    private void UpdateNetwork()
-    {
-        if (bestPlane == null)
-        {
-            planes[0].GetComponentInChildren<NeuralNetwork>().Start();
-            planes[0].GetComponentInChildren<NeuralNetwork>().network.CreateUI(planes[0]);
-            Debug.Log("Done");
-        }
-        else
-        {
-            bestPlane.GetComponentInChildren<NeuralNetwork>().network.CreateUI(bestPlane);
-        }
-    }
-
-    private void DeletePlanes()
-    {
-        foreach (GameObject plane in planes)
-        {
-            bool destroy = true;
-            for (int index = 0; index < bestPlanes.Count; index++)
-            {
-                if (plane.GetComponent<Plane>().id == bestPlanes[index].GetComponent<Plane>().id)
+                if (bestPlayers[index].GetComponent<Player>().score < bird.GetComponent<Player>().score)
                 {
-                    destroy = false;
+                    bestPlayers[index] = bird;
+                    bird.GetComponent<Player>().visible = true;
                 }
             }
-
-            if (destroy)
-            {
-                Destroy(plane);
-            }
         }
-        RecreatePlanes();
+
+        if (lastBest.GetComponent<Player>().id != bestPlayer.GetComponent<Player>().id)
+        {
+            GameObject.Find("UI").GetComponent<NetworkUI>().Build(bestPlayer);
+        }
+        GameObject.Find("Score").GetComponent<TextMeshPro>().text = bestPlayer.GetComponent<Player>().score.ToString("0000000");
+        GameObject.Find("best").GetComponent<Text>().text = "Best ID " + bestPlayer.GetComponent<Player>().id.ToString();
+        lastBest = bestPlayer;
     }
 
-    private void RecreatePlanes()
+    void UpdateUI()
+    {
+        Debug.Log("Gen: " + gen);
+        Debug.Log(bestPlayer.GetComponent<Player>().network.Copy());
+        gen++;
+        GameObject.Find("UI").GetComponent<NetworkUI>().Build(bestPlayer);
+        GameObject.Find("Window Chart").GetComponent<WindowGraph>().score.Add((int)bestPlayer.GetComponent<Player>().score);
+        GameObject.Find("gen").GetComponent<Text>().text = "Gen " + gen.ToString();
+    }
+
+    void Restart()
     {
         int index = 0;
         int lastIndex = -1;
         string dna = "";
-        for (int id = 0; id < planeQuantity; id++)
+        playerAlive = playerAmmount;
+        UpdateUI();
+
+        foreach (GameObject bird in players)
         {
-            bool useId = true;
-            foreach (GameObject plane in bestPlanes)
+            bool isBest = false;
+            foreach (GameObject best in bestPlayers)
             {
-                plane.GetComponent<Plane>().opacity = 1;
-                if (plane.GetComponent<Plane>().id == id)
+                if (bird.GetComponent<Player>().id == best.GetComponent<Player>().id)
                 {
-                    useId = false;
+                    isBest = true;
                 }
             }
-
-            if (useId)
+            if (isBest)
             {
-                int bestPlaneIndex = (int)Math.Floor(index / (double)(planeQuantity / 10));
-                GameObject planeParent = bestPlanes[bestPlaneIndex];
-                index++;
-                
-                if (bestPlaneIndex != lastIndex)
+                bird.GetComponent<Player>().Restart();
+            }
+            else
+            {
+                int bestBirdIndex = (int)Math.Floor((double)index * (1 + randomAmmount) * (double)(playerSurviveAmmount / (double)(playerAmmount - playerSurviveAmmount)));
+                bird.GetComponent<Player>().Restart();
+                if (bestBirdIndex < bestPlayers.Count)
                 {
-                    dna = planeParent.GetComponentInChildren<NeuralNetwork>().network.Copy();
-                    lastIndex = bestPlaneIndex;
+                    GameObject birdMother = bestPlayers[bestBirdIndex];
+
+                    if (bestBirdIndex != lastIndex)
+                    {
+                        dna = birdMother.GetComponent<Player>().network.Copy();
+                        lastIndex = bestBirdIndex;
+                    }
+                    bird.GetComponent<Player>().network.Paste(dna);
+                    bird.GetComponent<Player>().network.Mutate();
                 }
-                GameObject instantiated = Instantiate(planeParent);
-                instantiated.transform.SetParent(transform);
-                instantiated.GetComponentInChildren<NeuralNetwork>().Start();
-                instantiated.GetComponentInChildren<NeuralNetwork>().network.Paste(dna);
-                instantiated.GetComponentInChildren<NeuralNetwork>().network.Mutate();
-                instantiated.GetComponent<Plane>().id = id;
-                instantiated.GetComponent<Plane>().opacity = .5f;
-                instantiated.GetComponent<Plane>().Start();
+                else
+                {
+                    bird.GetComponent<Player>().network.Random();
+                }
+                index++;
             }
         }
+        GameObject.Find("GameController").GetComponent<GameController>().Restart();
     }
 }

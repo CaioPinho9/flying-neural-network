@@ -1,11 +1,9 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Obstacle : MonoBehaviour
 {
     public float speed;
+    public int id = 0;
 
     // Update is called once per frame
     void Update()
@@ -22,7 +20,5 @@ public class Obstacle : MonoBehaviour
         {
             Destroy(gameObject);
         }
-
-        
     }
 }

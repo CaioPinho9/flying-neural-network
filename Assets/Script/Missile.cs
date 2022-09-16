@@ -12,7 +12,7 @@ public class Missile : MonoBehaviour
 
     //Gameplay
     private bool destroyed;
-    public GameObject plane;
+    public GameObject player;
 
     // Start is called before the first frame update
     void Start()
@@ -49,7 +49,7 @@ public class Missile : MonoBehaviour
         //Destroy missile if it goes outside of camera, and recharges the plane
         if (!GetComponent<Renderer>().isVisible && !destroyed)
         {
-            plane.GetComponent<Plane>().recharged = true;
+            player.GetComponent<Player>().recharged = 1;
             
             Destroy(gameObject);
         }
@@ -61,7 +61,7 @@ public class Missile : MonoBehaviour
         if (!collision.gameObject.CompareTag("Player") && !collision.gameObject.CompareTag("Missile"))
         {
             //Recharges plane when destroyed
-            plane.GetComponent<Plane>().recharged = true;
+            player.GetComponent<Player>().recharged = 1;
 
             //Activate explosion animation
             GameObject boom = transform.GetChild(0).gameObject;

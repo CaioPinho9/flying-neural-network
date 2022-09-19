@@ -7,12 +7,17 @@ using Color = UnityEngine.Color;
 
 public class NetworkUI : MonoBehaviour
 {
+    //First neuron position
+    [Header("Start Position")]
     public float startX;
     public float startY;
 
+    //Size
+    [Header("Size")]
     public float width;
     public float height;
 
+    //Distance between neurons
     private float neuronDistanceX;
     private float neuronDistanceY;
 
@@ -27,6 +32,9 @@ public class NetworkUI : MonoBehaviour
     private bool built = false;
     private float weightLimit;
 
+    private float time = 0;
+    private readonly float queueTime = .5f;
+
 
     private void Start()
     {
@@ -38,23 +46,28 @@ public class NetworkUI : MonoBehaviour
     {
         if (built && bestNetwork != null)
         {
-            int renderIndex = 0;
-            foreach (Layer layer in bestNetwork.GetComponent<Player>().network.layer)
+            if (time > queueTime)
             {
-                foreach (Neuron neuron in layer.neuron)
+                int renderIndex = 0;
+                foreach (Layer layer in bestNetwork.GetComponent<Player>().network.layer)
                 {
-                    if (neuron.output > 0)
+                    foreach (Neuron neuron in layer.neuron)
                     {
-                        neuronData[renderIndex].render.GetComponentInChildren<SpriteRenderer>().color = new(1, 0, 0);
+                        if (neuron.output > 0)
+                        {
+                            neuronData[renderIndex].render.GetComponentInChildren<SpriteRenderer>().color = new(1, 0, 0);
+                        }
+                        else
+                        {
+                            neuronData[renderIndex].render.GetComponentInChildren<SpriteRenderer>().color = new(1, 1, 1);
+                        }
+                        neuronData[renderIndex].render.transform.GetChild(1).GetComponentInChildren<Text>().text = neuron.output.ToString("0.00");
+                        renderIndex++;
                     }
-                    else
-                    {
-                        neuronData[renderIndex].render.GetComponentInChildren<SpriteRenderer>().color = new(1, 1, 1);
-                    }
-                    neuronData[renderIndex].render.transform.GetChild(1).GetComponentInChildren<Text>().text = neuron.output.ToString("0.00");
-                    renderIndex++;
                 }
+                time = 0;
             }
+            time += Time.deltaTime;
         }
     }
 

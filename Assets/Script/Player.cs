@@ -7,11 +7,17 @@ using Vector3 = UnityEngine.Vector3;
 
 public class Player : MonoBehaviour
 {
-    //Input
-    [Header("Input")]
+    //Control
+    [Header("Control")]
     public float vertical;
     public float horizontal;
     public bool shot;
+
+    //Movement
+    [Header("Movement")]
+    public float speed = 2f;
+    public float degrees = 0;
+    public float angle;
 
     //Sensor
     [Header("Sensors")]
@@ -20,12 +26,6 @@ public class Player : MonoBehaviour
     private readonly float sensorLenght = 20f;
     private readonly float[] sensorDegrees = { 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 90, 135, 180 };
     private readonly Vector3[] sensorDirection = new Vector3[24];
-
-    //Movement
-    [Header("Movement")]
-    public float speed = 2f;
-    public float degrees = 0;
-    public float angle;
 
     [Header("Gameplay")]
     //Gameplay
@@ -39,14 +39,15 @@ public class Player : MonoBehaviour
     public string rna = "";
     public bool visible = false;
 
+    [Header("Timer")]
     //Timer
     public float time;
     public float queueTime = .5f;
 
     //References
-    private Rigidbody2D rigidbody;
     public NeuralNetwork network;
     public GameObject missile;
+    private Rigidbody2D rb;
     private Animator anim;
     public LayerMask layerMask;
     public LayerMask layerCoin;
@@ -56,13 +57,13 @@ public class Player : MonoBehaviour
     {
         //Control Components
         anim = GetComponent<Animator>();
-        rigidbody = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody2D>();
         //Start at position
         transform.position = new(-10, 0, 0);
         //Create the neural network
         network = new();
         //Don't rotate without a command
-        rigidbody.freezeRotation = true;
+        rb.freezeRotation = true;
 
         if (dna == "")
         {
@@ -80,9 +81,9 @@ public class Player : MonoBehaviour
         GetComponent<Renderer>().enabled = true;
 
         //Enable Animation
-        GetComponent<Animator>().enabled = true;
+        //GetComponent<Animator>().enabled = true;
         //Enable Movement
-        rigidbody.isKinematic = false;
+        rb.isKinematic = false;
         //Reset position and angle
         transform.position = new(-10, 0, 0);
         transform.eulerAngles = new(0, 0, 0);
@@ -124,20 +125,6 @@ public class Player : MonoBehaviour
                     Death();
                 }
 
-                //Check every obstacle
-                GameObject[] obstacles = GameObject.FindGameObjectsWithTag("Obstacle");
-                if (obstacles != null)
-                {
-                    foreach (GameObject obstacle in obstacles)
-                    {
-                        if (obstacle.transform.position.x < transform.position.x)
-                        {
-                            //Add 100 to score if this player is in obstacle right
-                            score += 100;
-                        }
-                    }
-                }
-
                 //Update sensors
                 Sensors();
 
@@ -157,7 +144,7 @@ public class Player : MonoBehaviour
             score += Time.deltaTime;
 
             //Animate
-            Animate(speed, horizontal);
+            //Animate(speed, horizontal);
         }
     }
 
@@ -278,6 +265,7 @@ public class Player : MonoBehaviour
         anim.SetBool("recharged", recharged == 1);
     }
 
+    /*
     private void Animate(float speed, float horizontal)
     {
         //Break animation if plane is moving backwards or breaking.
@@ -295,6 +283,7 @@ public class Player : MonoBehaviour
             anim.SetBool("break", true);
         }
     }
+    */
 
     private void Missile()
     {
@@ -311,11 +300,11 @@ public class Player : MonoBehaviour
         boom.GetComponent<Renderer>().enabled = true;
         boom.GetComponent<Animator>().enabled = true;
 
-        rigidbody.isKinematic = true;
-        rigidbody.velocity = Vector3.zero;
+        rb.isKinematic = true;
+        rb.velocity = Vector3.zero;
         GetComponent<SpriteRenderer>().color = Color.black;
         GetComponent<SpriteRenderer>().sortingOrder = 0;
-        GetComponent<Animator>().enabled = false;
+        //GetComponent<Animator>().enabled = false;
 
         //Stop the game
         gameOver = true;
@@ -323,7 +312,7 @@ public class Player : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        //If collide, player loses, unless in godmode
+        //If collide, player loses
         if (!gameOver && (collision.gameObject.CompareTag("Obstacle") || 
                           collision.gameObject.CompareTag("Enemy") || 
                           collision.gameObject.CompareTag("Ammo") || 
@@ -353,32 +342,43 @@ public class Player : MonoBehaviour
 
     private void RunNetwork()
     {
+        //Reset outputs
         network.Clear();
+        //Receive new information
         network.Input(InputData());
+        //Calculate the next move
         network.Forward();
 
+        //Receive output
         float left = (network.layer[network.lastLayer - 1].neuron[0].output > 0) ? 1 : 0;
         float right = (network.layer[network.lastLayer - 1].neuron[1].output > 0) ? -1 : 0;
         float up = (network.layer[network.lastLayer - 1].neuron[2].output > 0) ? 1 : 0;
         float down = (network.layer[network.lastLayer - 1].neuron[3].output > 0) ? -1 : 0;
-        shot = (network.layer[network.lastLayer - 1].neuron[4].output > 0);
 
-        GetComponent<Player>().vertical = up + down;
-        GetComponent<Player>().horizontal = left + down;
-        GetComponent<Player>().shot = shot;
+        //Control player
+        shot = (network.layer[network.lastLayer - 1].neuron[4].output > 0);
+        vertical = up + down;
+        horizontal = left + right;
     }
 }
 
 public class NeuralNetwork
 {
-    public static int[] neuronsLayer = { 27, 8, 5 };
+    //Neural Setting
+    public static int[] neuronsLayer = { 27, 10, 5 };
+    //How big is the network
     public int lastLayer = neuronsLayer.Length;
 
+    //Each layer have neurons and links
     public Layer[] layer = new Layer[neuronsLayer.Length];
 
+    //String with all weights and bias
     public string dna;
-    public static int weightLimit = 1000;
-    public int mutate = 10;
+
+    //Max value of weights and bias
+    public static int weightLimit = 100;
+    //Max value of mutation
+    public int mutate = 1;
 
     public NeuralNetwork()
     {
@@ -396,8 +396,10 @@ public class NeuralNetwork
                 networkSize = neuronsLayer.Length
             };
         }
+        //Create all neurons than create links
         CreateNeurons();
         LinkLayers();
+        //Show current dna in player
         dna = Copy();
     }
 
@@ -410,6 +412,7 @@ public class NeuralNetwork
         {
             foreach (Link link in layer.link)
             {
+                //Create string with all weights and bias
                 dna += link.weight.ToString("0.00") + "/" + link.bias.ToString("0.00") + ";";
             }
         }
@@ -422,6 +425,7 @@ public class NeuralNetwork
         int index = 0;
         //Weight/Bias;Weight/Bias;Weight/Bias;
         //";" separates different links, and "/" separates weight and bias
+        //Iterates and set weights and bias
         foreach (Layer layer in layer)
         {
             foreach (Link link in layer.link)
@@ -436,18 +440,22 @@ public class NeuralNetwork
 
     public void Mutate()
     {
+        //Iterates the network
         foreach (Layer layer in layer)
         {
             foreach (Link link in layer.link)
             {
+                //Mutates using a random number, mutate = max value of mutation
                 MutateLink(link, RandomNumber(mutate), RandomNumber(mutate));
             }
         }
+        //Show current dna in player
         dna = Copy();
     }
 
     public void MutateLink(Link link, float randomW, float randomB)
     {
+        //Limits the max of a weight 
         if (link.weight < weightLimit && link.weight > -weightLimit)
         {
             link.weight += randomW;
@@ -461,6 +469,7 @@ public class NeuralNetwork
             link.weight += Math.Abs(randomW);
         }
 
+        //Limits the max of a bias 
         if (link.bias < mutate && link.bias > -mutate)
         {
             link.bias += randomB;
@@ -477,6 +486,7 @@ public class NeuralNetwork
 
     public void Random()
     {
+        //Creates a random network, same as start
         foreach (Layer layer in layer)
         {
             foreach (Link link in layer.link)
@@ -492,6 +502,7 @@ public class NeuralNetwork
 
     public static float RandomNumber(float limit)
     {
+        //Creates a float number with 2 decimals
         return (float)UnityEngine.Random.Range(-limit, limit) + (float)UnityEngine.Random.Range(-100, 100) / 100;
     }
 
@@ -516,6 +527,7 @@ public class NeuralNetwork
 
     public void Clear()
     {
+        //Iterates the network and set outputs to 0
         foreach (Layer layer in layer)
         {
             if (layer.layerId > 0)

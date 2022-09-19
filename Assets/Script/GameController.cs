@@ -50,28 +50,17 @@ public class GameController : MonoBehaviour
             spawnTime = seconds;
             Spawn();
         }
-
-        //Each second increases the score in 3 points
-        if (!gameOver)
-        {
-            score += (int)(seconds - lastSecond) * 3;
-            foreach (GameObject player in GameObject.FindGameObjectsWithTag("Player"))
-            {
-                if (!player.GetComponent<Player>().gameOver)
-                {
-                    player.GetComponent<Player>().score += (int)(seconds - lastSecond) * 3;
-                }
-            }
-            lastSecond = seconds;
-        }
     }
 
     public static float Distance(float x1, float y1, float x2, float y2)
     {
+        //Euclidian Distance
         return (float)Math.Sqrt(Math.Pow((x2 - x1), 2) + Math.Pow((y2 - y1), 2));
     }
+
     public void Restart()
     {
+        //Delete everything
         GameObject[] enemy = GameObject.FindGameObjectsWithTag("Enemy");
         GameObject[] ammo = GameObject.FindGameObjectsWithTag("Ammo");
         GameObject[] obstacle = GameObject.FindGameObjectsWithTag("Obstacle");
@@ -84,6 +73,7 @@ public class GameController : MonoBehaviour
         foreach (GameObject destroy in missile) { Destroy(destroy); }
         foreach (GameObject destroy in coin) { Destroy(destroy); }
 
+        //Reset values
         score = 0;
         gameOver = false;
         timer.GetComponent<Timer>().seconds = 0;

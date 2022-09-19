@@ -7,9 +7,9 @@ using UnityEngine.UI;
 public class NeuralController : MonoBehaviour
 {
     [Header("Config")]
-    public int playerAmmount;
-    public int playerSurviveAmmount;
-    public float randomAmmount;
+    public int playerAmount;
+    public int playerSurviveAmount;
+    public float randomAmount;
     public GameObject prefab;
 
     [Header("Manage")]
@@ -27,12 +27,12 @@ public class NeuralController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        Create(playerAmmount);
+        Create(playerAmount);
         players = GameObject.FindGameObjectsWithTag("Player");
         players[0].GetComponent<Player>().Start();
         lastBest = players[0];
         GameObject.Find("UI").GetComponent<NetworkUI>().Build(players[0]);
-        GameObject.Find("alive").GetComponent<Text>().text = "Birds " + playerAmmount.ToString() + " / " + playerAmmount.ToString();
+        GameObject.Find("alive").GetComponent<Text>().text = "Birds " + playerAmount.ToString() + " / " + playerAmount.ToString();
         Check();
     }
 
@@ -105,7 +105,7 @@ public class NeuralController : MonoBehaviour
 
     void Check()
     {
-        playerAlive = playerAmmount;
+        playerAlive = playerAmount;
         bestPlayer = players[0];
         bestPlayers.Clear();
         foreach (GameObject bird in players)
@@ -114,7 +114,7 @@ public class NeuralController : MonoBehaviour
             if (bird.GetComponent<Player>().gameOver)
             {
                 playerAlive--;
-                GameObject.Find("alive").GetComponent<Text>().text = "Player " + playerAlive.ToString() + " / " + playerAmmount.ToString();
+                GameObject.Find("alive").GetComponent<Text>().text = "Player " + playerAlive.ToString() + " / " + playerAmount.ToString();
             }
 
             if (bestPlayer.GetComponent<Player>().score < bird.GetComponent<Player>().score)
@@ -123,7 +123,7 @@ public class NeuralController : MonoBehaviour
                 bird.GetComponent<Player>().visible = true;
             }
 
-            if (bestPlayers.Count < playerSurviveAmmount)
+            if (bestPlayers.Count < playerSurviveAmount)
             {
                 bestPlayers.Add(bird);
                 bird.GetComponent<Player>().visible = true;
@@ -175,7 +175,7 @@ public class NeuralController : MonoBehaviour
         int index = 0;
         int lastIndex = -1;
         string dna = "";
-        playerAlive = playerAmmount;
+        playerAlive = playerAmount;
         UpdateUI();
 
         foreach (GameObject bird in players)
@@ -194,7 +194,7 @@ public class NeuralController : MonoBehaviour
             }
             else
             {
-                int bestBirdIndex = (int)Math.Floor((double)index * (1 + randomAmmount) * (double)(playerSurviveAmmount / (double)(playerAmmount - playerSurviveAmmount)));
+                int bestBirdIndex = (int)Math.Floor((double)index * (1 + randomAmount) * (double)(playerSurviveAmount / (double)(playerAmount - playerSurviveAmount)));
                 bird.GetComponent<Player>().Restart();
                 if (bestBirdIndex < bestPlayers.Count)
                 {

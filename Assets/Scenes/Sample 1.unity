@@ -529,11 +529,12 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -12.079677, y: 5.00001}
-  - {x: 12.07973, y: 5.000068}
-  - {x: 12.07973, y: -5.0000677}
-  - {x: -12.07973, y: -5.0000677}
-  - {x: -12.07973, y: 5.000068}
+  - {x: -10.506502, y: 5.003393}
+  - {x: 10.531999, y: 5.000068}
+  - {x: 10.523809, y: 4.967312}
+  - {x: 10.515621, y: -5.0000677}
+  - {x: -10.510018, y: -5.007076}
+  - {x: -10.509938, y: 5.0000677}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
@@ -665,8 +666,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 71bb90e5422eb034b9252b6eea81d3da, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerAmmount: 300
-  playerSurviveAmmount: 15
+  playerAmmount: 400
+  playerSurviveAmmount: 10
   randomAmmount: 0.4
   prefab: {fileID: 8738483304707863531, guid: ffd031ea4fd24e84592819da4df3c176, type: 3}
   playerAlive: 1

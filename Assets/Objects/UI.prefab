@@ -129,7 +129,7 @@ MonoBehaviour:
   startY: 1.1
   width: 2
   height: 0.75
-  neuronCircle: {fileID: 3080086304331296683, guid: 3de8f92ebb9c50b4fa32aef3f8cfc4f7, type: 3}
+  neuronCircle: {fileID: 3080086304331296683, guid: a36a31b7e8f4baf40adcb70c830ab665, type: 3}
   material: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
 --- !u!1 &1857768606598905227
 GameObject:
@@ -380,8 +380,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 108.96, y: 297.41}
-  m_SizeDelta: {x: 178.13, y: 87.587}
+  m_AnchoredPosition: {x: 120.57, y: 289.67}
+  m_SizeDelta: {x: 201.35, y: 103.07}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &3352662485397276655
 GameObject:
@@ -519,8 +519,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 108.96424, y: 296.90656}
-  m_SizeDelta: {x: 178.1284, y: 86.5869}
+  m_AnchoredPosition: {x: 120.57157, y: 289.16833}
+  m_SizeDelta: {x: 201.3431, y: 102.0633}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3352662485653692308
 CanvasRenderer:
@@ -835,8 +835,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -0.2184, y: -0.0822}
-  m_SizeDelta: {x: 172.2917, y: 81.9249}
+  m_AnchoredPosition: {x: 0.00022554, y: 0.000053406}
+  m_SizeDelta: {x: 201.35, y: 103.07}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7568829569225643528
 CanvasRenderer:

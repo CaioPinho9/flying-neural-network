@@ -22,7 +22,7 @@ public class NeuralController : MonoBehaviour
 
     [Header("Timer")]
     public float time;
-    public float queueTime = .5f;
+    public float queueTime = 2f;
 
     // Start is called before the first frame update
     void Start()
@@ -178,25 +178,31 @@ public class NeuralController : MonoBehaviour
         playerAlive = playerAmount;
         UpdateUI();
 
-        foreach (GameObject bird in players)
+        foreach (GameObject player in players)
         {
             bool isBest = false;
             foreach (GameObject best in bestPlayers)
             {
-                if (bird.GetComponent<Player>().id == best.GetComponent<Player>().id)
+                if (player.GetComponent<Player>().id == best.GetComponent<Player>().id)
                 {
                     isBest = true;
                 }
             }
             if (isBest)
             {
-                bird.GetComponent<Player>().Restart();
+                player.GetComponent<Player>().Restart();
             }
             else
             {
-                int bestBirdIndex = (int)Math.Floor((double)index * (1 + randomAmount) * (double)(playerSurviveAmount / (double)(playerAmount - playerSurviveAmount)));
-                bird.GetComponent<Player>().Restart();
-                if (bestBirdIndex < bestPlayers.Count)
+                int randomPlayerAmount = (int)Math.Floor((double)playerAmount * randomAmount);
+                int bestBirdIndex = (int)Math.Floor((double)(((index - randomPlayerAmount) * (playerSurviveAmount + 1)) / (playerAmount - randomPlayerAmount)));
+                player.GetComponent<Player>().Restart();
+
+                if (index < randomPlayerAmount)
+                {
+                    player.GetComponent<Player>().network.Random();
+                }
+                else if (bestBirdIndex < bestPlayers.Count)
                 {
                     GameObject birdMother = bestPlayers[bestBirdIndex];
 
@@ -205,12 +211,15 @@ public class NeuralController : MonoBehaviour
                         dna = birdMother.GetComponent<Player>().network.Copy();
                         lastIndex = bestBirdIndex;
                     }
-                    bird.GetComponent<Player>().network.Paste(dna);
-                    bird.GetComponent<Player>().network.Mutate();
+                    player.GetComponent<Player>().network.Paste(dna);
+                    player.GetComponent<Player>().network.Mutate();
                 }
                 else
                 {
-                    bird.GetComponent<Player>().network.Random();
+                    GameObject birdMother = bestPlayers[^1];
+                    dna = birdMother.GetComponent<Player>().network.Copy();
+                    player.GetComponent<Player>().network.Paste(dna);
+                    player.GetComponent<Player>().network.Mutate();
                 }
                 index++;
             }

@@ -21,7 +21,7 @@ public class Ammo : MonoBehaviour
     void Update()
     {
         //Speed increases by time, timer in controller
-        speed = controller.GetComponent<GameController>().speed * -1.5f;
+        speed = GameController.speed * -1.5f;
 
         //Movement
         Vector3 movement = new(speed, 0f, 0f);
@@ -39,6 +39,7 @@ public class Ammo : MonoBehaviour
         //Destroyed when collide
         if (collision.gameObject.CompareTag("Obstacle") || collision.gameObject.CompareTag("Missile"))
         {
+            collision.transform.GetComponent<Missile>().player.GetComponent<Player>().score += 500;
             Destroy(gameObject);
         }
     }

@@ -41,7 +41,7 @@ public class Missile : MonoBehaviour
         else
         {
             //Matches speed
-            float matchObstacleSpeed = GameObject.Find("GameController").GetComponent<GameController>().speed / -2;
+            float matchObstacleSpeed = GameController.speed / -2;
             Vector3 movement = new(matchObstacleSpeed, 0f, 0f);
             transform.position += Time.deltaTime * movement;
         }

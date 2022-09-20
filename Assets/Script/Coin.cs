@@ -16,7 +16,7 @@ public class Coin : MonoBehaviour
     void Update()
     {
         //Speed increase by time, timer is in the controller
-        speed = GameObject.Find("GameController").GetComponent<GameController>().speed / -2;
+        speed = GameController.speed / -2;
 
         //Movement
         Vector3 movement = new(speed, 0f, 0f);
@@ -34,7 +34,7 @@ public class Coin : MonoBehaviour
         if (collision.gameObject.CompareTag("Player") && !collision.GetComponent<Player>().gameOver)
         {
             //Coins have a great impact in the score
-            collision.transform.GetComponent<Player>().score += 2000;
+            collision.transform.GetComponent<Player>().score += 200000;
 
             //Open loop exit
             Destroy(GameObject.Find("Exit"));

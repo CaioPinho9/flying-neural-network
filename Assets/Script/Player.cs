@@ -15,17 +15,19 @@ public class Player : MonoBehaviour
 
     //Movement
     [Header("Movement")]
-    public float speed = 2f;
+    public float speed = 1f;
     public float degrees = 0;
     public float angle;
 
     //Sensor
     [Header("Sensors")]
-    public float[] sensorDistance = new float[24];
+    public float[] sensorDistance = new float[16];
     public float sensorCoin = 0;
+    private float hitType = 0;
+    private float hitSpeed = 0;
     private readonly float sensorLenght = 20f;
-    private readonly float[] sensorDegrees = { 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 90, 135, 180 };
-    private readonly Vector3[] sensorDirection = new Vector3[24];
+    private readonly float[] sensorDegrees = { 0, 15, 30, 45, 90, 180 };
+    private readonly Vector3[] sensorDirection = new Vector3[16];
 
     [Header("Gameplay")]
     //Gameplay
@@ -42,13 +44,14 @@ public class Player : MonoBehaviour
     [Header("Timer")]
     //Timer
     public float time;
-    public float queueTime = .5f;
+    public float queueTime = 1.5f;
 
     //References
     public NeuralNetwork network;
     public GameObject missile;
     private Rigidbody2D rb;
-    private Animator anim;
+    //private Animator anim;
+    private SpriteRenderer sp;
     public LayerMask layerMask;
     public LayerMask layerCoin;
 
@@ -56,8 +59,9 @@ public class Player : MonoBehaviour
     public void Start()
     {
         //Control Components
-        anim = GetComponent<Animator>();
+        //anim = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
+        sp = GetComponent<SpriteRenderer>();
         //Start at position
         transform.position = new(-10, 0, 0);
         //Create the neural network
@@ -76,8 +80,8 @@ public class Player : MonoBehaviour
     public void Restart()
     {
         //Change color and sortingOrder
-        GetComponent<SpriteRenderer>().color = new(1f, 1f, 1f, visible ? 1f : .2f);
-        GetComponent<SpriteRenderer>().sortingOrder = 1;
+        sp.color = new(1f, 1f, 1f, visible ? 1f : .2f);
+        sp.sortingOrder = 1;
         GetComponent<Renderer>().enabled = true;
 
         //Enable Animation
@@ -94,7 +98,10 @@ public class Player : MonoBehaviour
         //Set alive
         gameOver = false;
         //Reset speed, angle, recharge and score
-        speed = 2f;
+        speed = 1f;
+        horizontal = 0;
+        vertical = 0;
+        shot = false;
         degrees = 0;
         recharged = 1;
         score = 0;
@@ -117,7 +124,7 @@ public class Player : MonoBehaviour
             if (time > queueTime)
             {
                 //Set visibility
-                GetComponent<SpriteRenderer>().color = new(1f, 1f, 1f, visible ? 1f : .2f);
+                sp.color = new(1f, 1f, 1f, visible ? 1f : .2f);
 
                 //Die if leaves area
                 if (Math.Abs(transform.position.x) > 12 || Math.Abs(transform.position.y) > 6)
@@ -188,7 +195,7 @@ public class Player : MonoBehaviour
         }
 
         //Unity didn't allow global arrays
-        float[] distance = new float[24];
+        float[] distance = new float[16];
 
         //Create a raycast
         int sensorIndex = 0;
@@ -201,6 +208,29 @@ public class Player : MonoBehaviour
                 distance[sensorIndex] = GameController.Distance(hit.point.x, hit.point.y, transform.position.x, transform.position.y);
 
                 Debug.DrawLine(transform.position, hit.point);
+                if (sensorIndex == 0)
+                {
+                    hitType = 0;
+                    hitSpeed = 0;
+
+                    if (hit.transform.GetComponent<Enemy>() != null)
+                    {
+                        hitType = 1;
+                        hitSpeed = GameController.speed;
+                    }
+
+                    if (hit.transform.GetComponent<Ammo>() != null)
+                    {
+                        hitType = 2;
+                        hitSpeed = GameController.speed * -1.5f;
+                    }
+
+                    if (hit.transform.GetComponent<Obstacle>() != null)
+                    {
+                        hitType = 3;
+                        hitSpeed = GameController.speed;
+                    }
+                }
             } 
             else
             {
@@ -232,11 +262,12 @@ public class Player : MonoBehaviour
     private void Move()
     {
         //Limiting speed
-        if ((horizontal > 0 && speed < 10) || (horizontal < 0 && speed > 0f))
+        if ((horizontal > 0 && speed < 10) || (horizontal < 0 && speed > 1f))
         {
             speed += horizontal / 5;
-            if (speed < 0) { speed = 0; }
+            if (speed < 1) { speed = 1; }
         }
+        horizontal = 0;
 
         //Move
         transform.position += speed * Time.deltaTime * transform.right;
@@ -245,7 +276,8 @@ public class Player : MonoBehaviour
     private void Pitch()
     {
         //Increasing the input
-        degrees += vertical * 3f;
+        degrees += vertical * 5f;
+        vertical = 0;
 
         //Change angle of plane
         transform.eulerAngles = new(0f, 0f, degrees);
@@ -258,11 +290,12 @@ public class Player : MonoBehaviour
         {
             //Create missile
             recharged = 0;
+            shot = false;
             Missile();
         }
 
         //Remove and add missile in animation
-        anim.SetBool("recharged", recharged == 1);
+        //anim.SetBool("recharged", recharged == 1);
     }
 
     /*
@@ -302,8 +335,8 @@ public class Player : MonoBehaviour
 
         rb.isKinematic = true;
         rb.velocity = Vector3.zero;
-        GetComponent<SpriteRenderer>().color = Color.black;
-        GetComponent<SpriteRenderer>().sortingOrder = 0;
+        sp.color = Color.black;
+        sp.sortingOrder = 0;
         //GetComponent<Animator>().enabled = false;
 
         //Stop the game
@@ -324,17 +357,19 @@ public class Player : MonoBehaviour
 
     private ArrayList InputData()
     {
-        //Receive data from plane
-        speed = GetComponent<Player>().speed;
-        recharged = GetComponent<Player>().recharged;
-        sensorDistance = GetComponent<Player>().sensorDistance;
-        sensorCoin = GetComponent<Player>().sensorCoin;
-
+        float normalizedAngle = (float)(((float)Math.PI * degrees / 180) % (Math.PI * 2));
+        if (normalizedAngle < 0)
+        {
+            normalizedAngle += (float)Math.PI * 2;
+        }
         //Organize data in array to sort the inputs
         return new()
         {
+            normalizedAngle,
             speed,
             recharged,
+            hitType,
+            hitSpeed,
             sensorCoin,
             sensorDistance,
         };
@@ -356,16 +391,16 @@ public class Player : MonoBehaviour
         float down = (network.layer[network.lastLayer - 1].neuron[3].output > 0) ? -1 : 0;
 
         //Control player
-        shot = (network.layer[network.lastLayer - 1].neuron[4].output > 0);
         vertical = up + down;
         horizontal = left + right;
+        shot = (network.layer[network.lastLayer - 1].neuron[4].output > 0);
     }
 }
 
 public class NeuralNetwork
 {
     //Neural Setting
-    public static int[] neuronsLayer = { 27, 10, 5 };
+    public static int[] neuronsLayer = { 23, 11, 9, 5 };
     //How big is the network
     public int lastLayer = neuronsLayer.Length;
 
@@ -376,9 +411,9 @@ public class NeuralNetwork
     public string dna;
 
     //Max value of weights and bias
-    public static int weightLimit = 100;
+    public static int mutateLimit = 500;
     //Max value of mutation
-    public int mutate = 1;
+    public int mutate = 10;
 
     public NeuralNetwork()
     {
@@ -391,7 +426,7 @@ public class NeuralNetwork
                 //Which layer is this
                 layerId = i,
                 //Range of link weight
-                randomStart = weightLimit,
+                randomStart = mutateLimit,
                 //How long is the network
                 networkSize = neuronsLayer.Length
             };
@@ -438,29 +473,29 @@ public class NeuralNetwork
         }
     }
 
-    public void Mutate()
+    public void Mutate(float learningRate)
     {
+        dna = "";
         //Iterates the network
         foreach (Layer layer in layer)
         {
             foreach (Link link in layer.link)
             {
                 //Mutates using a random number, mutate = max value of mutation
-                MutateLink(link, RandomNumber(mutate), RandomNumber(mutate));
+                MutateLink(link, RandomNumber(mutate)*learningRate, RandomNumber(mutate)*learningRate);
             }
         }
         //Show current dna in player
-        dna = Copy();
     }
 
     public void MutateLink(Link link, float randomW, float randomB)
     {
         //Limits the max of a weight 
-        if (link.weight < weightLimit && link.weight > -weightLimit)
+        if (link.weight < mutateLimit && link.weight > -mutateLimit)
         {
             link.weight += randomW;
         }
-        else if (link.weight >= weightLimit)
+        else if (link.weight >= mutateLimit)
         {
             link.weight -= Math.Abs(randomW);
         }
@@ -470,11 +505,11 @@ public class NeuralNetwork
         }
 
         //Limits the max of a bias 
-        if (link.bias < mutate && link.bias > -mutate)
+        if (link.bias < mutateLimit && link.bias > -mutateLimit)
         {
             link.bias += randomB;
         }
-        else if (link.weight >= mutate)
+        else if (link.bias >= mutateLimit)
         {
             link.bias -= Math.Abs(randomB);
         }
@@ -482,20 +517,25 @@ public class NeuralNetwork
         {
             link.bias += Math.Abs(randomB);
         }
+
+        //Copy
+        dna += link.weight.ToString("0.00") + "/" + link.bias.ToString("0.00") + ";";
     }
 
     public void Random()
     {
+        dna = "";
         //Creates a random network, same as start
         foreach (Layer layer in layer)
         {
             foreach (Link link in layer.link)
             {
-                float random = RandomNumber(weightLimit);
+                float random = RandomNumber(mutateLimit);
                 link.weight = random;
 
-                random = RandomNumber(weightLimit);
+                random = RandomNumber(mutateLimit);
                 link.bias = random;
+                dna += link.weight.ToString("0.00") + "/" + link.bias.ToString("0.00") + ";";
             }
         }
     }
@@ -695,7 +735,14 @@ public class Neuron
         //Activate if input > 0
         if (input > 0)
         {
-            return input;
+            if (input < 10000)
+            {
+                return input;
+            }
+            else
+            {
+                return 10000;
+            }
         }
         return 0;
     }

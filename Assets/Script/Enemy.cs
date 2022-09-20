@@ -32,7 +32,7 @@ public class Enemy : MonoBehaviour
     void Update()
     {
         //Speed increases by time, timer in controller
-        speed = controller.GetComponent<GameController>().speed / -2;
+        speed = GameController.speed / -2;
         time = GameObject.Find("Timer").GetComponent<Timer>().seconds;
        
         //If ammo doesn't exist, enemy is recharged
@@ -109,7 +109,7 @@ public class Enemy : MonoBehaviour
         //When hit by missile, it's destroyed and player receive a bonus score
         if (collision.gameObject.CompareTag("Missile"))
         {
-            collision.transform.GetComponent<Missile>().player.GetComponent<Player>().score += 50;
+            collision.transform.GetComponent<Missile>().player.GetComponent<Player>().score += 5000;
             Death();
         }
     }

@@ -7,7 +7,7 @@ public class GameController : MonoBehaviour
     public bool gameOver = false;
 
     //Gameplay
-    public float speed = 2f;
+    public static float speed = 2f;
     public int score;
 
     //Spawn
@@ -120,6 +120,12 @@ public class GameController : MonoBehaviour
     {
         GameObject obstacle;
 
+        if (id <= 1)
+        {
+            id++;
+            return crateTower;
+        }
+
         //Random
         float randomNumber = UnityEngine.Random.Range(0, 100);
 
@@ -161,19 +167,28 @@ public class GameController : MonoBehaviour
             {
                 position[0] = new Vector3(15f, -2.44f, 0f);
             }
-            //DOUBLE UP 25%
             else 
             */
-            if (randomNumber <= 50)
+
+            //DOUBLE UP 25%
+            if (id == 1)
             {
-                position[0] = new Vector3(15f, 2.44f, 0f);
-                position[1] = new Vector3(15f, -0.12f, 0f);
+                position[0] = new Vector3(15f, -0.11f, 0f);
+            }
+            //DOUBLE DOWN 25%
+            else if (id == 2)
+            {
+                position[0] = new Vector3(15f, -2.46f, 0f);
+            } 
+            //DOUBLE UP 25%
+            else if (randomNumber <= 50)
+            {
+                position[0] = new Vector3(15f, -0.11f, 0f);
             }
             //DOUBLE DOWN 25%
             else
             {
-                position[0] = new Vector3(15f, -2.44f, 0f);
-                position[1] = new Vector3(15f, 0.12f, 0f);
+                position[0] = new Vector3(15f, -2.46f, 0f);
             }
             //Default spawn time
             waitTime = defaultTime;

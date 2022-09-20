@@ -33,12 +33,12 @@ public class NetworkUI : MonoBehaviour
     private float weightLimit;
 
     private float time = 0;
-    private readonly float queueTime = .5f;
+    private readonly float queueTime = 1f;
 
 
     private void Start()
     {
-        weightLimit = NeuralNetwork.weightLimit;
+        weightLimit = NeuralNetwork.mutateLimit;
     }
 
     // Update is called once per frame

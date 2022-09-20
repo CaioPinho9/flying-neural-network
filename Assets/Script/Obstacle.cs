@@ -17,7 +17,7 @@ public class Obstacle : MonoBehaviour
     void Update()
     {
         //Speed increase by time, timer is in the controller
-        speed = GameObject.Find("GameController").GetComponent<GameController>().speed / -2;
+        speed = GameController.speed / -2;
 
         //Movement
         Vector3 movement = new(speed, 0f, 0f);
